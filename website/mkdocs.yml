@@ -1,0 +1,103 @@
+site_name: EEG NPSI Tutorial
+site_url: https://sancamilloirccs-ondalab.github.io/tutorial_EEG-NPSI/
+site_author: SanCamilloIRCCS-OndaLab
+site_description: >-
+  A multi-language tutorial for EEG data analysis — Time-Frequency Analysis,
+  ERSP, Connectivity, and Source Analysis in Python, R, and Matlab.
+
+repo_name: SanCamilloIRCCS-OndaLab/EEG_NPSI_tutorial
+repo_url: https://github.com/SanCamilloIRCCS-OndaLab/EEG_NPSI_tutorial
+edit_uri: edit/main/docs/
+
+copyright: Copyright &copy; 2025 San Camillo IRCCS
+
+theme:
+  name: material
+  custom_dir: overrides
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: cyan
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: cyan
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  font:
+    text: Roboto
+    code: Roboto Mono
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - navigation.footer
+    - search.highlight
+    - search.suggest
+    - content.tabs.link       # keeps selected language tab across pages
+    - content.code.copy
+    - content.code.annotate
+  icon:
+    repo: fontawesome/brands/github
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/SanCamilloIRCCS-OndaLab/EEG_NPSI_tutorial
+
+plugins:
+  - search
+  - glightbox   # image zoom on click
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true   # enables === "Tab" syntax
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+      options:
+        custom_icons:
+          - overrides/.icons
+  - attr_list
+  - md_in_html
+  - tables
+  - footnotes
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Installation: getting_started/installation.md
+      - Data: getting_started/data.md
+      - Repository Structure: getting_started/structure.md
+  - Tutorials:
+      - Overview: tutorials/index.md
+      - "01 · Preprocessing": tutorials/01_preprocessing.md
+      - "02 · Time-Frequency Analysis": tutorials/02_time_frequency.md
+      - "03 · ERSP": tutorials/03_ersp.md
+      - "04 · Connectivity": tutorials/04_connectivity.md
+      - "05 · Source Analysis": tutorials/05_source_analysis.md
+  - API / Functions: api/index.md
+  - About:
+      - Citation: about/citation.md
+      - Contributing: about/contributing.md
+      - Changelog: about/changelog.md
