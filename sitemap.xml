@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
-         <loc>https://SanCamilloIRCCS-OndaLab.github.io/EEG_NPSI_tutorial/</loc>
+         <loc>https://sancamilloirccs-ondalab.github.io/tutorial_EEG-NPSI/</loc>
          <lastmod>2026-03-06</lastmod>
     </url>
     <url>
-         <loc>https://SanCamilloIRCCS-OndaLab.github.io/EEG_NPSI_tutorial/tutorials/</loc>
+         <loc>https://sancamilloirccs-ondalab.github.io/tutorial_EEG-NPSI/tutorials/</loc>
          <lastmod>2026-03-06</lastmod>
     </url>
     <url>
-         <loc>https://SanCamilloIRCCS-OndaLab.github.io/EEG_NPSI_tutorial/tutorials/02_time_frequency/</loc>
+         <loc>https://sancamilloirccs-ondalab.github.io/tutorial_EEG-NPSI/tutorials/02_time_frequency/</loc>
          <lastmod>2026-03-06</lastmod>
     </url>
 </urlset>
