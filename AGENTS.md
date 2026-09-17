@@ -6,7 +6,7 @@ Multi-language tutorial for EEG data analysis. **Python** code is functional; **
 
 ## Repo structure
 
-- `data/` — CSV datasets (`dataset_NPSY.csv`, `dataset_P300.csv`, `dataset_PSD.csv`); mock-data notebooks in `data/Code/`
+- `data/` — CSV datasets (`dataset_NPSY.csv`, `dataset_ERP.csv`, `dataset_PSD.csv`), all generated together by `data/generate_datasets.ipynb`. `dataset_NPSY.csv`/`dataset_ERP.csv` are entirely synthetic; the PSD arrays in `data/EEG/PSD/` (`psd_matrix.npy`, `psd_log_matrix.npy`) are real, anonymised EEG recordings computed by `data/EEG/PSD/compute_psd.ipynb` — `dataset_PSD.csv` is a band-power summary derived from them. See the notice at the top of `generate_datasets.ipynb` for how the (synthetic) `moca` column and the real spectra are linked.
 - `python/` — actual analysis code
   - `utils.py` — all reusable functions (I/O, stats, plotting)
   - `_build_notebook.py` — **source of truth** for `CaseStudy_1.ipynb` (the `.ipynb` is generated, not hand-edited)
@@ -49,7 +49,10 @@ This repo has none. Don't look for them.
 ## Data conventions
 
 - CSVs use auto-detected separator (`utils.load_dataset` tries tab → comma → whitespace)
-- Key columns: `subject_id` (merge key), `P300_latency`, `APACS_tot`, `age`, `education`
+- Key column: `subject_id` (merge key across all three CSVs)
+- `dataset_NPSY.csv`: `age`, `sex`, `criq`, `apacs`, `att_matr`, `moca`
+- `dataset_ERP.csv`: `n400_amp`, `n400_lat`, `p300_amp`, `p300_lat`
+- `dataset_PSD.csv`: `mean_power`, `delta_power`, `theta_power`, `alpha_power`, `beta_power`, `gamma_power`
 - 40 subjects (41 rows including header)
 
 ## Notebook build details
