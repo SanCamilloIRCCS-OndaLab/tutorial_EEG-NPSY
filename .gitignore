@@ -1,6 +1,9 @@
 # Created by https://www.toptal.com/developers/gitignore/api/python,r,matlab,macos,visualstudiocode,linux,windows
 # Edit at https://www.toptal.com/developers/gitignore?templates=python,r,matlab,macos,visualstudiocode,linux,windows
 
+### MkDocs ###
+website/site/
+
 ### Linux ###
 *~
 
@@ -355,3 +358,6 @@ rsconnect/
 /*_files/
 
 # End of https://www.toptal.com/developers/gitignore/api/python,r,matlab,macos,visualstudiocode,linux,windows
+
+data/EEG/PSD/per_subject/*.mat
+data/EEG/PSD/per_subject/*.npz

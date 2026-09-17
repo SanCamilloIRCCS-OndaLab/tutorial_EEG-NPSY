@@ -2,8 +2,9 @@ site_name: EEG NPSI Tutorial
 site_url: https://sancamilloirccs-ondalab.github.io/tutorial_EEG-NPSI/
 site_author: SanCamilloIRCCS-OndaLab
 site_description: >-
-  A multi-language tutorial for EEG data analysis — Time-Frequency Analysis,
-  ERSP, Connectivity, and Source Analysis in Python, R, and Matlab.
+  A multi-language tutorial for EEG data analysis — clinical case studies
+  linking EEG/ERP features to neuropsychological outcomes, Time-Frequency
+  Analysis, ERSP, Connectivity, and Source Analysis in Python, R, and Matlab.
 
 repo_name: SanCamilloIRCCS-OndaLab/EEG_NPSI_tutorial
 repo_url: https://github.com/SanCamilloIRCCS-OndaLab/EEG_NPSI_tutorial
@@ -53,6 +54,9 @@ extra:
 plugins:
   - search
   - glightbox   # image zoom on click
+  - mkdocs-jupyter:
+      include_source: True
+      execute: False
 
 markdown_extensions:
   - admonition
@@ -89,6 +93,11 @@ nav:
       - Installation: getting_started/installation.md
       - Data: getting_started/data.md
       - Repository Structure: getting_started/structure.md
+  - Case Studies:
+      - Overview: case_studies/index.md
+      - "Case Study 1 · ERP & Neuropsychology": case_studies/case_study_1.md
+      - "Case Study 1 · Notebook (Python)": case_studies/case_study_1_notebook.ipynb
+      - "Case Study 2 · Spectral Features (coming soon)": case_studies/case_study_2.md
   - Tutorials:
       - Overview: tutorials/index.md
       - "01 · Preprocessing": tutorials/01_preprocessing.md

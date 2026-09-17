@@ -1,7 +1,9 @@
 # EEG NPSI Tutorial
 
 !!! warning "Bozza"
-    Tutto il sito è una bozza e con contenuti random, generati quasi totalmente da Claude
+    La maggior parte del sito è ancora una bozza con contenuti generati
+    quasi totalmente da Claude. [Case Study 1](case_studies/case_study_1.md)
+    è invece completo e pronto all'uso.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python](https://img.shields.io/badge/Python-3.8%2B-blue.svg)](https://www.python.org/)
@@ -18,6 +20,16 @@ This tutorial provides a step-by-step guide to analyzing EEG data using standard
 Each analysis step is presented with parallel code in Python, R, and Matlab so you can follow along in whichever environment you prefer.
 
 <div class="grid cards" markdown>
+
+-   :material-chart-bell-curve:{ .lg .middle } **Case Study 1**
+
+    ---
+
+    Start here: a complete, ready-to-run example relating ERP components
+    (N400, P300) to neuropsychological performance — written for readers
+    with no statistics background.
+
+    [:octicons-arrow-right-24: Case Study 1](case_studies/case_study_1.md)
 
 -   :material-clock-fast:{ .lg .middle } **Quick Start**
 
