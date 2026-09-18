@@ -1,0 +1,6 @@
+Band,Freq min (Hz),Freq max (Hz),Cluster mass,N points,p_raw,p_bonferroni (x5),Significant (p<0.05)
+delta,1,4,-494.2905727731217,221,0.076,0.38,False
+theta,4,8,-1963.327834746321,827,0.027,0.135,False
+alpha,8,13,-897.2865649535978,393,0.086,0.42999999999999994,False
+beta,13,30,-3378.161141946385,1421,0.075,0.375,False
+gamma,30,40,-1043.9850717730546,444,0.123,0.615,False
