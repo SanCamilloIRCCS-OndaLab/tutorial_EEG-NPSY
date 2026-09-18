@@ -85,7 +85,7 @@ Exported results, ready to open in Excel or re-use elsewhere:
 
 The notebook and raw data also live in the
 [GitHub repository](https://github.com/SanCamilloIRCCS-OndaLab/EEG_NPSI_tutorial/tree/main/python),
-under `python/CaseStudy_1.ipynb` and `data/`.
+under `python/CaseStudy_1/CaseStudy_1.ipynb` and `data/`.
 
 ## Strengths and limitations
 

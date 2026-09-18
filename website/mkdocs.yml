@@ -97,7 +97,8 @@ nav:
       - Overview: case_studies/index.md
       - "Case Study 1 · ERP & Neuropsychology": case_studies/case_study_1.md
       - "Case Study 1 · Notebook (Python)": case_studies/case_study_1_notebook.ipynb
-      - "Case Study 2 · Spectral Features (coming soon)": case_studies/case_study_2.md
+      - "Case Study 2 · Spectral Features": case_studies/case_study_2.md
+      - "Case Study 2 · Notebook (Python)": case_studies/case_study_2_notebook.ipynb
   - Tutorials:
       - Overview: tutorials/index.md
       - "01 · Preprocessing": tutorials/01_preprocessing.md

@@ -3,7 +3,8 @@
 !!! warning "Bozza"
     La maggior parte del sito è ancora una bozza con contenuti generati
     quasi totalmente da Claude. [Case Study 1](case_studies/case_study_1.md)
-    è invece completo e pronto all'uso.
+    e [Case Study 2](case_studies/case_study_2.md) sono invece completi e
+    pronti all'uso.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python](https://img.shields.io/badge/Python-3.8%2B-blue.svg)](https://www.python.org/)
@@ -30,6 +31,15 @@ Each analysis step is presented with parallel code in Python, R, and Matlab so y
     with no statistics background.
 
     [:octicons-arrow-right-24: Case Study 1](case_studies/case_study_1.md)
+
+-   :material-view-grid-outline:{ .lg .middle } **Case Study 2**
+
+    ---
+
+    Real, whole-scalp EEG spectra analysed with cluster-based permutation
+    testing — no a priori restriction to a single band or region.
+
+    [:octicons-arrow-right-24: Case Study 2](case_studies/case_study_2.md)
 
 -   :material-clock-fast:{ .lg .middle } **Quick Start**
 
