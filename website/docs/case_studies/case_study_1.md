@@ -70,22 +70,7 @@ patients, so it can be run end to end without access to real clinical data:
     whatever happens to be non-significant in a bigger model. See the full
     reasoning in the notebook, Section 2.3.
 
-## Explore it yourself
-
-[:octicons-arrow-right-24: Open the full notebook](case_study_1_notebook.ipynb){ .md-button .md-button--primary }
-[:material-download: Download the notebook](case_study_1_notebook/case_study_1_notebook.ipynb){ .md-button }
-
-Exported results, ready to open in Excel or re-use elsewhere:
-
-- [:material-file-excel: All tables — one workbook, one sheet each](outputs/results/CaseStudy_1_results.xlsx)
-- [Descriptive statistics (CSV)](outputs/results/table1_descriptives.csv)
-- [Bivariate correlations (CSV)](outputs/results/table2_correlations.csv)
-- [Regression results (CSV)](outputs/results/table3_regression.csv)
-- [Multicollinearity check — VIF (CSV)](outputs/results/table4_vif.csv)
-
-The notebook and raw data also live in the
-[GitHub repository](https://github.com/SanCamilloIRCCS-OndaLab/EEG_NPSI_tutorial/tree/main/python),
-under `python/CaseStudy_1/CaseStudy_1.ipynb` and `data/`.
+[:octicons-arrow-right-24: See the code](case_study_1_notebook.ipynb){ .md-button .md-button--primary }
 
 ## Strengths and limitations
 

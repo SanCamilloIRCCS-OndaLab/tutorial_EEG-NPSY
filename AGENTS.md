@@ -2,7 +2,7 @@
 
 ## What this is
 
-Multi-language tutorial for EEG data analysis. **Python** code is functional; **R** and **Matlab** are scaffolds only (`.gitkeep` — no real code yet). Data is synthetic/mock.
+Multi-language tutorial for EEG data analysis. **Python** code is functional; **R** has a first working port of Case Study 1 (`r/case1/code/CaseStudy_1.ipynb`, R kernel `ir_eegnpsi` in the `r_env` conda env), the rest of R and all of **Matlab** are still scaffolds only (`.gitkeep` — no real code yet). Data is synthetic/mock, except Case Study 2's EEG spectra (real, see `data/generate_datasets.ipynb`).
 
 ## Repo structure
 

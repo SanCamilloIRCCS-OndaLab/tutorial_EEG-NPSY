@@ -1,0 +1,94 @@
+/* ONDA Lab brand colors, sampled from the lab logo (files/images/ONDA_logo_v12.png
+   at https://sancamilloirccs-ondalab.github.io/):
+     navy      #1b4f72  (the "o", "d", "a" letterforms)
+     sky blue  #8fc2d7  (the "n" and its echo)
+   The accent used for links/hover is a deepened variant of the sky blue —
+   the literal brand hex fails WCAG contrast as small text on white. */
+
+[data-md-color-scheme="default"] {
+  --md-primary-fg-color:         #1b4f72;
+  --md-primary-fg-color--light:  #3b7ea3;
+  --md-primary-fg-color--dark:   #123a54;
+  --md-primary-bg-color:         #ffffff;
+  --md-primary-bg-color--light:  #ffffff;
+
+  --md-accent-fg-color:              #14688f;
+  --md-accent-fg-color--transparent: #14688f1a;
+  --md-accent-bg-color:              #ffffff;
+  --md-accent-bg-color--light:       #ffffff;
+
+  --md-typeset-a-color: #14688f;
+}
+
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color:         #1b4f72;
+  --md-primary-fg-color--light:  #3b7ea3;
+  --md-primary-fg-color--dark:   #0d2c40;
+  --md-primary-bg-color:         #ffffff;
+  --md-primary-bg-color--light:  #ffffff;
+
+  --md-accent-fg-color:              #8fc2d7;
+  --md-accent-fg-color--transparent: #8fc2d71a;
+  --md-accent-bg-color:              #0d2c40;
+  --md-accent-bg-color--light:       #0d2c40;
+
+  --md-typeset-a-color: #8fc2d7;
+}
+
+/* homepage lab credit strip */
+.onda-credit {
+  display: flex;
+  align-items: center;
+  gap: 0.75em;
+  margin: 1.5em 0;
+}
+
+.onda-credit img {
+  height: 2.2em;
+  width: auto;
+}
+
+/* floating language switcher (docs/javascripts/lang-switch.js) */
+.lang-switch {
+  position: fixed;
+  right: 1.25rem;
+  bottom: 1.25rem;
+  z-index: 10;
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.3rem;
+  border-radius: 2rem;
+  background-color: var(--md-default-bg-color);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.lang-switch__btn {
+  border: none;
+  border-radius: 1.5rem;
+  padding: 0.45rem 0.9rem;
+  font-family: var(--md-text-font-family);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  color: var(--md-default-fg-color);
+  background-color: transparent;
+  transition: background-color 125ms, color 125ms;
+}
+
+.lang-switch__btn:hover {
+  background-color: var(--md-accent-fg-color--transparent);
+}
+
+.lang-switch__btn--active {
+  background-color: var(--md-primary-fg-color);
+  color: var(--md-primary-bg-color);
+  cursor: default;
+}
+
+@media screen and (max-width: 44.9375em) {
+  .lang-switch {
+    right: 0.75rem;
+    bottom: 0.75rem;
+  }
+}

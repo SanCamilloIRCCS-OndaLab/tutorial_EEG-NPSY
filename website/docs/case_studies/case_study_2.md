@@ -81,10 +81,49 @@ region) that tracks the severity of impairment (Finnigan & Van Putten,
     survives correction on its own, which is exactly why the secondary
     test pools delta and theta together.
 
+## Code
+
+A taste of the core idea — the full file, in whichever language you use, is
+one click away.
+
+=== ":lang-python: Python"
+
+    ```python
+    # One partial-correlation t-value per channel x frequency point,
+    # controlling for age and CRIq
+    t_map = partial_corr_tmap(psd_log, moca, age, criq, n_ch, n_freq)
+
+    # Primary: whole spectrum, no a priori restriction
+    primary = cluster_permutation_test(
+        psd_log, moca, age, criq, combined_adjacency, n_ch, n_freq)
+
+    # Secondary / confirmatory: pre-registered ROI
+    # (right hemisphere, delta/theta)
+    secondary = cluster_permutation_test(
+        psd_log_roi, moca, age, criq, roi_adjacency, n_ch_roi, n_freq_roi)
+    ```
+
+    [:material-download: Download the Python notebook](case_study_2_notebook/case_study_2_notebook.ipynb){ .md-button }
+
+=== ":lang-r: R"
+
+    ```r
+    # work in progress — R port coming soon
+    ```
+
+    R implementation coming soon — for now, see the Python notebook above.
+
+=== ":lang-matlab: Matlab"
+
+    ```matlab
+    % work in progress — Matlab port coming soon
+    ```
+
+    Matlab implementation coming soon — for now, see the Python notebook above.
+
 ## Explore it yourself
 
 [:octicons-arrow-right-24: Open the full notebook](case_study_2_notebook.ipynb){ .md-button .md-button--primary }
-[:material-download: Download the notebook](case_study_2_notebook/case_study_2_notebook.ipynb){ .md-button }
 
 Exported results, ready to open in Excel or re-use elsewhere:
 
@@ -95,7 +134,7 @@ Exported results, ready to open in Excel or re-use elsewhere:
 - [Per-band breakdown, exploratory (CSV)](outputs_cs2/results/table4_band_breakdown.csv)
 
 The notebook and raw data also live in the
-[GitHub repository](https://github.com/SanCamilloIRCCS-OndaLab/EEG_NPSI_tutorial/tree/main/python),
+[GitHub repository](https://github.com/SanCamilloIRCCS-OndaLab/tutorial_EEG-NPSY/tree/main/python),
 under `python/CaseStudy_2/CaseStudy_2.ipynb` and `data/`.
 
 ## Strengths and limitations
