@@ -233,7 +233,7 @@ print(table1)
 
 df_baseline = pd.merge(npsy, erp, on="subject_id", how="inner")
 mod_baseline = smf.glm("moca ~ p300_amp + age + criq", data=df_baseline,
-                        family=sm.families.Gaussian()).fit()
+                        family=sm.families.Gaussian()).fit(use_t=True)
 print(mod_baseline.summary())
 
 # ### 2.3 Mass-univariate partial correlation
