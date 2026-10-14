@@ -1,3 +1,8 @@
+---
+hide:
+  - toc
+---
+
 # Changelog
 
 No formal, versioned changelog yet — the project is still in active,

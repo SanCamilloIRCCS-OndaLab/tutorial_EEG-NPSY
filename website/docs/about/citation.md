@@ -1,3 +1,8 @@
+---
+hide:
+  - toc
+---
+
 # Citation
 
 If you use this tutorial in your work, please cite:

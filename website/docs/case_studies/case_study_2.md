@@ -1,10 +1,31 @@
+---
+hide:
+  - toc
+---
+
 # Case Study 2 · Whole-scalp spectral analysis of resting-state EEG
 
-!!! info "Who this is for"
-    Same audience as [Case Study 1](case_study_1.md) — no prior statistics
-    background assumed. This case study uses a more advanced technique
-    (cluster-based permutation testing), so the plain-language explanation
-    boxes do more work here; read them before the code.
+<div class="case-study-hero" markdown>
+
+<div class="case-study-hero__body" markdown>
+
+An **exploratory**, whole-scalp look at resting-state EEG spectra and
+global cognition — no a priori restriction to a single frequency band or
+region, analysed with cluster-based permutation testing.
+
+[:octicons-arrow-right-24: See the code](case_study_2/python.ipynb){ .md-button .md-button--primary }
+
+<span class="meta-badge">204 channels &times; 159 freqs</span>
+<span class="meta-badge">Cluster permutation</span>
+<span class="meta-badge">Real EEG spectra</span>
+
+</div>
+
+<div class="case-study-hero__image">
+<img src="../outputs_cs2/figures/D_cluster_topography.png" alt="Significant right-hemisphere cluster topography in Case Study 2">
+</div>
+
+</div>
 
 ## Research question
 
@@ -38,16 +59,43 @@ region) that tracks the severity of impairment (Finnigan & Van Putten,
 
 ## Pipeline
 
-1. **Data wrangling** — load & strictly align the PSD array with the
-   neuropsychological table, inspect the spectrum for data-quality red
-   flags, missing data, log-power distribution check
-2. **Analysis** — a naive Case-Study-1-style baseline model (for
-   contrast), mass-univariate partial correlation at every channel ×
-   frequency point, cluster-based permutation testing (a **primary**
-   whole-spectrum test and a pre-registered **secondary/confirmatory**
-   test), topographic visualisation, and an exploratory breakdown by
-   canonical frequency band
-3. **Export** — figures and tables (CSV + Excel)
+<div class="pipeline">
+
+<div class="pipeline__step">
+<span class="pipeline__badge"><svg viewBox="0 0 24 24"><path d="M3 3h18v18H3V3zm2 2v6h6V5H5zm8 0v6h6V5h-6zM5 13v6h6v-6H5zm8 0v6h6v-6h-6z"/></svg></span>
+<h4>1. Data Wrangling</h4>
+<ul>
+<li>Strictly align PSD array with neuropsychological table</li>
+<li>Spectrum data-quality checks</li>
+<li>Log-power distribution check</li>
+</ul>
+</div>
+
+<div class="pipeline__arrow"><svg viewBox="0 0 24 24"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg></div>
+
+<div class="pipeline__step">
+<span class="pipeline__badge"><svg viewBox="0 0 24 24"><path d="M4 20h2V10H4v10zm5 0h2V4H9v16zm5 0h2v-7h-2v7zm5 0h2v-13h-2v13z"/></svg></span>
+<h4>2. Analysis</h4>
+<ul>
+<li>Baseline model (Case-Study-1-style, for contrast)</li>
+<li>Mass-univariate partial correlation</li>
+<li>Cluster-based permutation (primary + secondary)</li>
+<li>Exploratory per-band breakdown</li>
+</ul>
+</div>
+
+<div class="pipeline__arrow"><svg viewBox="0 0 24 24"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg></div>
+
+<div class="pipeline__step">
+<span class="pipeline__badge"><svg viewBox="0 0 24 24"><path d="M12 16.5l-5.5-5.5 1.41-1.41L11 12.67V4h2v8.67l3.09-3.08L17.5 11z"/><path d="M5 18h14v2H5z"/></svg></span>
+<h4>3. Export</h4>
+<ul>
+<li>Figures (PNG)</li>
+<li>Tables (CSV + Excel)</li>
+</ul>
+</div>
+
+</div>
 
 ## A taste of the results
 
@@ -76,54 +124,12 @@ region) that tracks the severity of impairment (Finnigan & Van Putten,
     "worked", is what keeps the secondary result meaningful — the same
     a-priori-vs-post-hoc logic Case Study 1 teaches for choosing
     predictors, applied here to choosing *where to look*. An exploratory
-    breakdown by individual frequency band (Section 2.7 of the notebook)
+    breakdown by individual frequency band (Section 2.7 of the code)
     makes the trade-off concrete: none of the five canonical bands
     survives correction on its own, which is exactly why the secondary
     test pools delta and theta together.
 
-## Code
-
-A taste of the core idea — the full file, in whichever language you use, is
-one click away.
-
-=== ":lang-python: Python"
-
-    ```python
-    # One partial-correlation t-value per channel x frequency point,
-    # controlling for age and CRIq
-    t_map = partial_corr_tmap(psd_log, moca, age, criq, n_ch, n_freq)
-
-    # Primary: whole spectrum, no a priori restriction
-    primary = cluster_permutation_test(
-        psd_log, moca, age, criq, combined_adjacency, n_ch, n_freq)
-
-    # Secondary / confirmatory: pre-registered ROI
-    # (right hemisphere, delta/theta)
-    secondary = cluster_permutation_test(
-        psd_log_roi, moca, age, criq, roi_adjacency, n_ch_roi, n_freq_roi)
-    ```
-
-    [:material-download: Download the Python notebook](case_study_2_notebook/case_study_2_notebook.ipynb){ .md-button }
-
-=== ":lang-r: R"
-
-    ```r
-    # work in progress — R port coming soon
-    ```
-
-    R implementation coming soon — for now, see the Python notebook above.
-
-=== ":lang-matlab: Matlab"
-
-    ```matlab
-    % work in progress — Matlab port coming soon
-    ```
-
-    Matlab implementation coming soon — for now, see the Python notebook above.
-
-## Explore it yourself
-
-[:octicons-arrow-right-24: Open the full notebook](case_study_2_notebook.ipynb){ .md-button .md-button--primary }
+[:octicons-arrow-right-24: See the code](case_study_2/python.ipynb){ .md-button .md-button--primary }
 
 Exported results, ready to open in Excel or re-use elsewhere:
 
@@ -133,9 +139,9 @@ Exported results, ready to open in Excel or re-use elsewhere:
 - [Baseline model (CSV)](outputs_cs2/results/table3_baseline_model.csv)
 - [Per-band breakdown, exploratory (CSV)](outputs_cs2/results/table4_band_breakdown.csv)
 
-The notebook and raw data also live in the
-[GitHub repository](https://github.com/SanCamilloIRCCS-OndaLab/tutorial_EEG-NPSY/tree/main/python),
-under `python/CaseStudy_2/CaseStudy_2.ipynb` and `data/`.
+The code and raw data also live in the
+[GitHub repository](https://github.com/SanCamilloIRCCS-OndaLab/tutorial_EEG-NPSY),
+under `python/CaseStudy_2/`, `r/case2/`, and `data/`.
 
 ## Strengths and limitations
 

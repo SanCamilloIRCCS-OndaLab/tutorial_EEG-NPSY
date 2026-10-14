@@ -41,7 +41,6 @@ theme:
     - navigation.sections
     - navigation.expand
     - navigation.top
-    - navigation.footer
     - search.highlight
     - search.suggest
     - content.tabs.link       # keeps selected language tab across pages
@@ -55,6 +54,7 @@ extra_css:
 
 extra_javascript:
   - javascripts/lang-switch.js
+  - javascripts/section-nav.js
 
 extra:
   social:
@@ -67,6 +67,9 @@ plugins:
   - mkdocs-jupyter:
       include_source: True
       execute: False
+      ignore_h1_titles: True   # keep the "Code" nav label, don't override it with the notebook's own H1
+      ignore:
+        - "*/case_studies/scripts/*.py"   # plain-script downloads, not jupytext notebooks - copy verbatim, don't render as pages
 
 markdown_extensions:
   - admonition
@@ -105,11 +108,10 @@ nav:
       - Repository Structure: getting_started/structure.md
   - Case Study 1:
       - Overview: case_studies/case_study_1.md
-      - Code: case_studies/case_study_1_notebook.ipynb
-      - Code (R): case_studies/case_study_1_notebook_r.ipynb
+      - Code: case_studies/case_study_1/python.ipynb
   - Case Study 2:
       - Overview: case_studies/case_study_2.md
-      - Notebook (Python): case_studies/case_study_2_notebook.ipynb
+      - Code: case_studies/case_study_2/python.ipynb
   - About:
       - Citation: about/citation.md
       - Contributing: about/contributing.md

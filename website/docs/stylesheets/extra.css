@@ -35,6 +35,280 @@
   --md-typeset-a-color: #8fc2d7;
 }
 
+/* homepage hero */
+.hero {
+  position: relative;
+  overflow: hidden;
+  margin: 1.5em 0 2em;
+  padding: 2.75em 2em;
+  border-radius: 0.5rem;
+  background: linear-gradient(135deg, #1b4f72 0%, #14688f 100%);
+}
+
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("../assets/eeg-wave.svg");
+  background-repeat: repeat-x;
+  background-size: 420px 100%;
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.hero > * {
+  position: relative;
+}
+
+.hero h1 {
+  margin-top: 0;
+  color: #ffffff;
+}
+
+.hero p {
+  color: #e7f1f7;
+  font-size: 1.05em;
+  max-width: 42em;
+}
+
+.hero .md-button {
+  margin: 0.3em 0.5em 0 0;
+}
+
+.hero .md-button--primary {
+  background-color: #ffffff;
+  border-color: #ffffff;
+  color: #1b4f72;
+}
+
+.hero .md-button--primary:hover {
+  background-color: #e7f1f7;
+  border-color: #e7f1f7;
+}
+
+.hero .md-button:not(.md-button--primary) {
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.6);
+}
+
+.hero .md-button:not(.md-button--primary):hover {
+  background-color: rgba(255, 255, 255, 0.12);
+  border-color: #ffffff;
+}
+
+/* hero result gallery - real figures from the case studies, not stock imagery */
+.hero-gallery {
+  display: flex;
+  gap: 0.75em;
+  margin-top: 1.75em;
+  flex-wrap: wrap;
+}
+
+.hero-gallery a {
+  flex: 1 1 180px;
+  max-width: 220px;
+  aspect-ratio: 4 / 3;
+  border-radius: 0.35rem;
+  overflow: hidden;
+  background-color: #ffffff;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  display: block;
+}
+
+.hero-gallery img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+  transition: transform 200ms ease;
+}
+
+.hero-gallery a:hover img {
+  transform: scale(1.06);
+}
+
+@media screen and (max-width: 44.9375em) {
+  .hero {
+    padding: 2em 1.25em;
+  }
+
+  .hero-gallery a {
+    flex-basis: 45%;
+  }
+}
+
+/* homepage case-study showcase cards */
+.case-study-cards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.25em;
+  margin: 1.5em 0 1em;
+}
+
+.case-study-card {
+  display: flex;
+  flex-direction: column;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  background-color: var(--md-default-bg-color);
+  border: 1px solid var(--md-default-fg-color--lightest);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: transform 180ms ease, box-shadow 180ms ease;
+  color: var(--md-default-fg-color);
+}
+
+.case-study-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.14);
+}
+
+.case-study-card img {
+  width: 100%;
+  height: 170px;
+  object-fit: cover;
+  object-position: center top;
+  display: block;
+  border-bottom: 1px solid var(--md-default-fg-color--lightest);
+}
+
+.case-study-card__body {
+  padding: 1.1em 1.25em 1.3em;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.case-study-card__eyebrow {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--md-accent-fg-color);
+  margin-bottom: 0.5em;
+}
+
+.case-study-card__body h3 {
+  margin: 0 0 0.4em;
+  font-size: 1.05rem;
+  line-height: 1.3;
+}
+
+.case-study-card__body p {
+  margin: 0 0 1.1em;
+  font-size: 0.88rem;
+  color: var(--md-default-fg-color--light);
+  flex: 1;
+}
+
+.case-study-card__cta {
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--md-accent-fg-color);
+}
+
+.case-study-card__cta span {
+  display: inline-block;
+  transition: transform 150ms ease;
+}
+
+.case-study-card:hover .case-study-card__cta span {
+  transform: translateX(3px);
+}
+
+@media screen and (max-width: 44.9375em) {
+  .case-study-cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Hide the primary sidebar only on desktop, where Material lays it out as
+   an inline column (content now uses that freed-up width instead). Left
+   untouched below that breakpoint, where the same markup becomes the
+   hamburger-menu drawer - the only way to reach top-level sections on
+   mobile, so it must stay in the DOM and working there. 76.25em matches
+   Material's own breakpoint for this switch (see overrides/main.html). */
+@media screen and (min-width: 76.25em) {
+  .md-sidebar--primary {
+    display: none;
+  }
+}
+
+/* case study overview hero: intro + CTA on the left, a real result figure
+   on the right */
+.case-study-hero {
+  display: flex;
+  align-items: center;
+  gap: 2em;
+  margin: 1.5em 0 2em;
+}
+
+.case-study-hero__body {
+  flex: 1 1 55%;
+}
+
+.case-study-hero__body > p:first-child {
+  font-size: 1.05em;
+  color: var(--md-default-fg-color--light);
+}
+
+.case-study-hero__image {
+  flex: 1 1 42%;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  border: 1px solid var(--md-default-fg-color--lightest);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+}
+
+.case-study-hero__image img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.meta-badge {
+  display: inline-block;
+  padding: 0.2em 0.75em;
+  margin: 0.6em 0.4em 0 0;
+  border-radius: 1em;
+  font-size: 0.72rem;
+  font-weight: 600;
+  background-color: var(--md-default-fg-color--lightest);
+  color: var(--md-default-fg-color--light);
+}
+
+@media screen and (max-width: 44.9375em) {
+  .case-study-hero {
+    flex-direction: column;
+  }
+}
+
+/* keep inline code (filenames, identifiers) from breaking mid-word in tables */
+.md-typeset table code {
+  white-space: nowrap;
+}
+
+/* data provenance badges (getting_started/data.md) */
+.data-badge {
+  display: inline-block;
+  padding: 0.15em 0.65em;
+  border-radius: 1em;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.data-badge--synthetic {
+  background-color: var(--md-default-fg-color--lightest);
+  color: var(--md-default-fg-color--light);
+}
+
+.data-badge--real {
+  background-color: var(--md-accent-fg-color--transparent);
+  color: var(--md-accent-fg-color);
+}
+
 /* homepage lab credit strip */
 .onda-credit {
   display: flex;
@@ -48,32 +322,74 @@
   width: auto;
 }
 
-/* floating language switcher (docs/javascripts/lang-switch.js) */
+/* inline language switcher (docs/javascripts/lang-switch.js) - sits right
+   under the notebook's H1, in the normal page flow */
 .lang-switch {
-  position: fixed;
-  right: 1.25rem;
-  bottom: 1.25rem;
-  z-index: 10;
-  display: flex;
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
   gap: 0.25rem;
   padding: 0.3rem;
+  margin: 0.25rem 0 1.75rem;
   border-radius: 2rem;
-  background-color: var(--md-default-bg-color);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  background-color: var(--md-default-fg-color--lightest);
+}
+
+/* download icon buttons (notebook, script), folded into the same pill
+   bar as the language switcher (divided by a thin rule) instead of
+   separate links next to it - reads as one "pick a language, or just
+   grab the code" control */
+.lang-switch__download {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.4rem 0.7rem;
+  margin-left: 0.15rem;
+  border: none;
+  border-left: 1px solid var(--md-default-fg-color--lighter);
+  border-radius: 0 1.5rem 1.5rem 0;
+  background: transparent;
+  color: var(--md-default-fg-color--light);
+  cursor: pointer;
+  transition: background-color 125ms, color 125ms;
+}
+
+.lang-switch__download:hover {
+  background-color: var(--md-accent-fg-color--transparent);
+  color: var(--md-accent-fg-color);
+}
+
+/* download button at the end of the notebook content */
+.download-code-button {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--md-default-fg-color--lightest);
 }
 
 .lang-switch__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   border: none;
   border-radius: 1.5rem;
-  padding: 0.45rem 0.9rem;
+  padding: 0.4rem 1.1rem;
   font-family: var(--md-text-font-family);
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.02em;
   cursor: pointer;
   color: var(--md-default-fg-color);
   background-color: transparent;
   transition: background-color 125ms, color 125ms;
+}
+
+.lang-switch__icon {
+  width: 1.1em;
+  height: 1.1em;
+  flex: none;
 }
 
 .lang-switch__btn:hover {
@@ -86,9 +402,171 @@
   cursor: default;
 }
 
-@media screen and (max-width: 44.9375em) {
-  .lang-switch {
-    right: 0.75rem;
-    bottom: 0.75rem;
+/* analysis pipeline stepper (case study overview pages) */
+.pipeline {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  margin: 1.5em 0 2em;
+}
+
+.pipeline__step {
+  flex: 1 1 0;
+  padding: 1.5em 1.25em;
+  background-color: var(--md-default-bg-color);
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.pipeline__step:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.1);
+}
+
+.pipeline__badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  margin-bottom: 0.9rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1b4f72 0%, #14688f 100%);
+  color: #fff;
+}
+
+.pipeline__badge svg {
+  width: 1.4rem;
+  height: 1.4rem;
+  fill: currentColor;
+}
+
+.pipeline__step h4 {
+  margin: 0 0 0.6em;
+  font-size: 0.95rem;
+}
+
+.pipeline__step ul {
+  margin: 0;
+  padding-left: 1.1em;
+  font-size: 0.82rem;
+  color: var(--md-default-fg-color--light);
+}
+
+.pipeline__step li {
+  margin: 0.25em 0;
+}
+
+.pipeline__arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 2rem;
+  color: var(--md-default-fg-color--lighter);
+}
+
+.pipeline__arrow svg {
+  width: 1.3rem;
+  height: 1.3rem;
+  fill: currentColor;
+}
+
+@media screen and (max-width: 59.9375em) {
+  .pipeline {
+    flex-direction: column;
+    gap: 0.75em;
   }
+
+  .pipeline__arrow {
+    width: auto;
+    height: 1.25rem;
+  }
+
+  .pipeline__arrow svg {
+    transform: rotate(90deg);
+  }
+}
+
+/* top-nav dropdown for sections with more than one page (overrides/
+   partials/tabs-item.html) - replaces the sidebar as the way to reach
+   a section's other pages now that the sidebar is desktop-hidden */
+.md-tabs,
+.md-tabs__list {
+  overflow: visible; /* stock rule clips anything taller than the tab bar */
+}
+
+.md-tabs__list {
+  contain: none; /* stock `contain: content` paint-clips the dropdown
+                    regardless of overflow - this is the one that
+                    actually matters */
+}
+
+.md-tabs__item {
+  position: relative;
+}
+
+.md-tabs__dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 100%;
+  margin: 0;
+  padding: 0.3rem 0;
+  list-style: none;
+  background-color: var(--md-primary-fg-color);
+  border-radius: 0 0 0.2rem 0.2rem;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.2);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+  transition: opacity 150ms ease, transform 150ms ease, visibility 150ms;
+  white-space: nowrap;
+  z-index: 10;
+}
+
+.md-tabs__item:hover .md-tabs__dropdown,
+.md-tabs__item:focus-within .md-tabs__dropdown {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.md-tabs__dropdown-link {
+  display: block;
+  padding: 0.5rem 1.1rem;
+  font-size: 0.7rem;
+  color: var(--md-primary-bg-color);
+  opacity: 0.8;
+}
+
+.md-tabs__dropdown-link:hover,
+.md-tabs__dropdown-link--active {
+  opacity: 1;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* "more in this section" links at the bottom of Getting Started / About
+   pages (docs/javascripts/section-nav.js) */
+.section-nav {
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--md-default-fg-color--lightest);
+}
+
+.section-nav__heading {
+  margin: 0 0 0.75rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--md-default-fg-color--light);
+}
+
+.section-nav__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
 }
