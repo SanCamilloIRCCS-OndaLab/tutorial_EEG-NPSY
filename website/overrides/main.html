@@ -1,0 +1,44 @@
+{#-
+  The "Table of contents" (secondary) sidebar is restored here to
+  Material's stock behavior: rendered by default, hidden per-page via
+  `hide: - toc` in front matter. It's only actually useful on the long
+  code pages (case_studies/*/python|r/, generated from .ipynb files,
+  which can't carry front matter) - every plain Markdown page sets
+  `hide: - toc` so it only ever shows up there.
+
+  The primary (navigation) sidebar is also still rendered here - on
+  narrow screens its content becomes the hamburger-menu drawer, the
+  *only* way to reach the top-level sections (Home, Getting Started, ...)
+  on mobile. It's hidden on desktop instead, via CSS in extra.css
+  (@media min-width: 76.25em, same breakpoint Material itself uses to
+  switch the sidebar from an off-canvas drawer to an inline column).
+  See https://squidfunk.github.io/mkdocs-material/customization/#overriding-blocks
+-#}
+{% extends "base.html" %}
+
+{% block site_nav %}
+  {% if nav %}
+    {% if page.meta and page.meta.hide %}
+      {% set hidden = "hidden" if "navigation" in page.meta.hide %}
+    {% endif %}
+    <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" {{ hidden }}>
+      <div class="md-sidebar__scrollwrap">
+        <div class="md-sidebar__inner">
+          {% include "partials/nav.html" %}
+        </div>
+      </div>
+    </div>
+  {% endif %}
+  {% if "toc.integrate" not in features %}
+    {% if page.meta and page.meta.hide %}
+      {% set hidden = "hidden" if "toc" in page.meta.hide %}
+    {% endif %}
+    <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" {{ hidden }}>
+      <div class="md-sidebar__scrollwrap">
+        <div class="md-sidebar__inner">
+          {% include "partials/toc.html" %}
+        </div>
+      </div>
+    </div>
+  {% endif %}
+{% endblock %}

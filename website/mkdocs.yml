@@ -1,43 +1,46 @@
-site_name: EEG NPSI Tutorial
-site_url: https://sancamilloirccs-ondalab.github.io/tutorial_EEG-NPSI/
+site_name: EEG NPSY Tutorial
+site_url: https://sancamilloirccs-ondalab.github.io/tutorial_EEG-NPSY/
 site_author: SanCamilloIRCCS-OndaLab
 site_description: >-
   A multi-language tutorial for EEG data analysis — clinical case studies
-  linking EEG/ERP features to neuropsychological outcomes, Time-Frequency
-  Analysis, ERSP, Connectivity, and Source Analysis in Python, R, and Matlab.
+  linking EEG/ERP features to neuropsychological outcomes, in Python, R,
+  and Matlab.
 
-repo_name: SanCamilloIRCCS-OndaLab/EEG_NPSI_tutorial
-repo_url: https://github.com/SanCamilloIRCCS-OndaLab/EEG_NPSI_tutorial
+repo_name: SanCamilloIRCCS-OndaLab/tutorial_EEG-NPSY
+repo_url: https://github.com/SanCamilloIRCCS-OndaLab/tutorial_EEG-NPSY
 edit_uri: edit/main/docs/
 
-copyright: Copyright &copy; 2025 San Camillo IRCCS
+copyright: >
+  Copyright &copy; 2025 San Camillo IRCCS — part of the
+  <a href="https://sancamilloirccs-ondalab.github.io/">ONDA Lab</a>
 
 theme:
   name: material
   custom_dir: overrides
+  logo: assets/logo.svg
+  favicon: assets/favicon.png
   palette:
     - scheme: default
-      primary: indigo
-      accent: cyan
+      primary: blue
+      accent: light-blue
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode
     - scheme: slate
-      primary: indigo
-      accent: cyan
+      primary: blue
+      accent: light-blue
       toggle:
         icon: material/brightness-4
         name: Switch to light mode
   font:
-    text: Roboto
-    code: Roboto Mono
+    text: IBM Plex Sans
+    code: IBM Plex Mono
   features:
     - navigation.tabs
     - navigation.tabs.sticky
     - navigation.sections
     - navigation.expand
     - navigation.top
-    - navigation.footer
     - search.highlight
     - search.suggest
     - content.tabs.link       # keeps selected language tab across pages
@@ -46,10 +49,17 @@ theme:
   icon:
     repo: fontawesome/brands/github
 
+extra_css:
+  - stylesheets/extra.css
+
+extra_javascript:
+  - javascripts/lang-switch.js
+  - javascripts/section-nav.js
+
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/SanCamilloIRCCS-OndaLab/EEG_NPSI_tutorial
+      link: https://github.com/SanCamilloIRCCS-OndaLab/tutorial_EEG-NPSY
 
 plugins:
   - search
@@ -57,6 +67,9 @@ plugins:
   - mkdocs-jupyter:
       include_source: True
       execute: False
+      ignore_h1_titles: True   # keep the "Code" nav label, don't override it with the notebook's own H1
+      ignore:
+        - "*/case_studies/scripts/*.py"   # plain-script downloads, not jupytext notebooks - copy verbatim, don't render as pages
 
 markdown_extensions:
   - admonition
@@ -93,20 +106,12 @@ nav:
       - Installation: getting_started/installation.md
       - Data: getting_started/data.md
       - Repository Structure: getting_started/structure.md
-  - Case Studies:
-      - Overview: case_studies/index.md
-      - "Case Study 1 · ERP & Neuropsychology": case_studies/case_study_1.md
-      - "Case Study 1 · Notebook (Python)": case_studies/case_study_1_notebook.ipynb
-      - "Case Study 2 · Spectral Features": case_studies/case_study_2.md
-      - "Case Study 2 · Notebook (Python)": case_studies/case_study_2_notebook.ipynb
-  - Tutorials:
-      - Overview: tutorials/index.md
-      - "01 · Preprocessing": tutorials/01_preprocessing.md
-      - "02 · Time-Frequency Analysis": tutorials/02_time_frequency.md
-      - "03 · ERSP": tutorials/03_ersp.md
-      - "04 · Connectivity": tutorials/04_connectivity.md
-      - "05 · Source Analysis": tutorials/05_source_analysis.md
-  - API / Functions: api/index.md
+  - Case Study 1:
+      - Overview: case_studies/case_study_1.md
+      - Code: case_studies/case_study_1/python.ipynb
+  - Case Study 2:
+      - Overview: case_studies/case_study_2.md
+      - Code: case_studies/case_study_2/python.ipynb
   - About:
       - Citation: about/citation.md
       - Contributing: about/contributing.md

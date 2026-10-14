@@ -1,10 +1,31 @@
+---
+hide:
+  - toc
+---
+
 # Case Study 1 · ERP correlates of neuropsychological performance
 
-!!! info "Who this is for"
-    This case study assumes **no prior background in statistics**. Every
-    figure is followed by a short "What do we see in the plot?" box, and
-    every modelling choice is explained in plain language before the code
-    that implements it.
+<div class="case-study-hero" markdown>
+
+<div class="case-study-hero__body" markdown>
+
+A **hypothesis-driven** look at whether two classic ERP components — N400
+and P300 — relate to neuropsychological performance in post-stroke
+patients, using four scalar features and linear regression.
+
+[:octicons-arrow-right-24: See the code](case_study_1/python.ipynb){ .md-button .md-button--primary }
+
+<span class="meta-badge">4 ERP features</span>
+<span class="meta-badge">Linear regression</span>
+<span class="meta-badge">Synthetic data</span>
+
+</div>
+
+<div class="case-study-hero__image">
+<img src="../outputs/figures/D_key_associations.png" alt="The two hypothesised associations in Case Study 1, with regression lines">
+</div>
+
+</div>
 
 ## Research question
 
@@ -28,7 +49,7 @@ neural predictors in total.
 
 ## Data
 
-The notebook uses a **synthetic (mock) dataset** of 40 simulated post-stroke
+The code uses a **synthetic (mock) dataset** of 40 simulated post-stroke
 patients, so it can be run end to end without access to real clinical data:
 
 - `dataset_NPSY.csv` — demographics (age, sex) and neuropsychological
@@ -38,14 +59,44 @@ patients, so it can be run end to end without access to real clinical data:
 
 ## Pipeline
 
-1. **Data wrangling** — load & merge, range checks, missing data, normality
-   checks, outlier detection
-2. **Analysis** — descriptive statistics, bivariate correlations, three
-   regression models (APACS; Attentive Matrices, kitchen-sink vs.
-   theory-guided), post-hoc assumption checking (residuals, Q-Q, Cook's
-   distance, VIF)
-3. **Export** — figures and tables (CSV + Excel), ready to reuse in a
-   report or a slide
+<div class="pipeline">
+
+<div class="pipeline__step">
+<span class="pipeline__badge"><svg viewBox="0 0 24 24"><path d="M3 3h18v18H3V3zm2 2v6h6V5H5zm8 0v6h6V5h-6zM5 13v6h6v-6H5zm8 0v6h6v-6h-6z"/></svg></span>
+<h4>1. Data Wrangling</h4>
+<ul>
+<li>Load &amp; merge</li>
+<li>Range &amp; missing-data checks</li>
+<li>Normality &amp; outlier detection</li>
+</ul>
+</div>
+
+<div class="pipeline__arrow"><svg viewBox="0 0 24 24"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg></div>
+
+<div class="pipeline__step">
+<span class="pipeline__badge"><svg viewBox="0 0 24 24"><path d="M4 20h2V10H4v10zm5 0h2V4H9v16zm5 0h2v-7h-2v7zm5 0h2v-13h-2v13z"/></svg></span>
+<h4>2. Analysis</h4>
+<ul>
+<li>Descriptive statistics</li>
+<li>Bivariate correlations</li>
+<li>Three regression models (APACS; Attentive Matrices, kitchen-sink vs. theory-guided)</li>
+<li>Post-hoc diagnostics (Q-Q, Cook's distance, VIF)</li>
+</ul>
+</div>
+
+<div class="pipeline__arrow"><svg viewBox="0 0 24 24"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg></div>
+
+<div class="pipeline__step">
+<span class="pipeline__badge"><svg viewBox="0 0 24 24"><path d="M12 16.5l-5.5-5.5 1.41-1.41L11 12.67V4h2v8.67l3.09-3.08L17.5 11z"/><path d="M5 18h14v2H5z"/></svg></span>
+<h4>3. Export</h4>
+<ul>
+<li>Figures (PNG)</li>
+<li>Tables (CSV + Excel)</li>
+<li>Ready to reuse in a report or a slide</li>
+</ul>
+</div>
+
+</div>
 
 ## A taste of the results
 
@@ -68,24 +119,9 @@ patients, so it can be run end to end without access to real clinical data:
     ones to drop matters as much as the decision itself. Choosing predictors
     **a priori**, from theory, avoids the circular reasoning of dropping
     whatever happens to be non-significant in a bigger model. See the full
-    reasoning in the notebook, Section 2.3.
+    reasoning in the code, Section 2.3.
 
-## Explore it yourself
-
-[:octicons-arrow-right-24: Open the full notebook](case_study_1_notebook.ipynb){ .md-button .md-button--primary }
-[:material-download: Download the notebook](case_study_1_notebook/case_study_1_notebook.ipynb){ .md-button }
-
-Exported results, ready to open in Excel or re-use elsewhere:
-
-- [:material-file-excel: All tables — one workbook, one sheet each](outputs/results/CaseStudy_1_results.xlsx)
-- [Descriptive statistics (CSV)](outputs/results/table1_descriptives.csv)
-- [Bivariate correlations (CSV)](outputs/results/table2_correlations.csv)
-- [Regression results (CSV)](outputs/results/table3_regression.csv)
-- [Multicollinearity check — VIF (CSV)](outputs/results/table4_vif.csv)
-
-The notebook and raw data also live in the
-[GitHub repository](https://github.com/SanCamilloIRCCS-OndaLab/EEG_NPSI_tutorial/tree/main/python),
-under `python/CaseStudy_1/CaseStudy_1.ipynb` and `data/`.
+[:octicons-arrow-right-24: See the code](case_study_1/python.ipynb){ .md-button .md-button--primary }
 
 ## Strengths and limitations
 

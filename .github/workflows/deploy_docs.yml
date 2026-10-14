@@ -25,11 +25,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install MkDocs and dependencies
-        run: |
-          pip install mkdocs-material \
-                      mkdocs-glightbox \
-                      mkdocs-jupyter \
-                      pymdown-extensions
+        run: pip install -r website/docs/requirements.txt
 
       - name: Deploy to GitHub Pages
         run: |
