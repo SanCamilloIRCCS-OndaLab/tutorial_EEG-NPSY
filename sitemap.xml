@@ -2,54 +2,58 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://sancamilloirccs-ondalab.github.io/tutorial_EEG-NPSY/</loc>
-         <lastmod>2026-10-14</lastmod>
+         <lastmod>2026-10-16</lastmod>
     </url>
     <url>
          <loc>https://sancamilloirccs-ondalab.github.io/tutorial_EEG-NPSY/about/changelog/</loc>
-         <lastmod>2026-10-14</lastmod>
+         <lastmod>2026-10-16</lastmod>
     </url>
     <url>
          <loc>https://sancamilloirccs-ondalab.github.io/tutorial_EEG-NPSY/about/citation/</loc>
-         <lastmod>2026-10-14</lastmod>
+         <lastmod>2026-10-16</lastmod>
     </url>
     <url>
          <loc>https://sancamilloirccs-ondalab.github.io/tutorial_EEG-NPSY/about/contributing/</loc>
-         <lastmod>2026-10-14</lastmod>
+         <lastmod>2026-10-16</lastmod>
     </url>
     <url>
          <loc>https://sancamilloirccs-ondalab.github.io/tutorial_EEG-NPSY/case_studies/case_study_1/</loc>
-         <lastmod>2026-10-14</lastmod>
+         <lastmod>2026-10-16</lastmod>
     </url>
     <url>
          <loc>https://sancamilloirccs-ondalab.github.io/tutorial_EEG-NPSY/case_studies/case_study_2/</loc>
-         <lastmod>2026-10-14</lastmod>
+         <lastmod>2026-10-16</lastmod>
+    </url>
+    <url>
+         <loc>https://sancamilloirccs-ondalab.github.io/tutorial_EEG-NPSY/case_studies/case_study_1/matlab/</loc>
+         <lastmod>2026-10-16</lastmod>
     </url>
     <url>
          <loc>https://sancamilloirccs-ondalab.github.io/tutorial_EEG-NPSY/case_studies/case_study_1/python/</loc>
-         <lastmod>2026-10-14</lastmod>
+         <lastmod>2026-10-16</lastmod>
     </url>
     <url>
          <loc>https://sancamilloirccs-ondalab.github.io/tutorial_EEG-NPSY/case_studies/case_study_1/r/</loc>
-         <lastmod>2026-10-14</lastmod>
+         <lastmod>2026-10-16</lastmod>
     </url>
     <url>
          <loc>https://sancamilloirccs-ondalab.github.io/tutorial_EEG-NPSY/case_studies/case_study_2/python/</loc>
-         <lastmod>2026-10-14</lastmod>
+         <lastmod>2026-10-16</lastmod>
     </url>
     <url>
          <loc>https://sancamilloirccs-ondalab.github.io/tutorial_EEG-NPSY/case_studies/case_study_2/r/</loc>
-         <lastmod>2026-10-14</lastmod>
+         <lastmod>2026-10-16</lastmod>
     </url>
     <url>
          <loc>https://sancamilloirccs-ondalab.github.io/tutorial_EEG-NPSY/getting_started/data/</loc>
-         <lastmod>2026-10-14</lastmod>
+         <lastmod>2026-10-16</lastmod>
     </url>
     <url>
          <loc>https://sancamilloirccs-ondalab.github.io/tutorial_EEG-NPSY/getting_started/installation/</loc>
-         <lastmod>2026-10-14</lastmod>
+         <lastmod>2026-10-16</lastmod>
     </url>
     <url>
          <loc>https://sancamilloirccs-ondalab.github.io/tutorial_EEG-NPSY/getting_started/structure/</loc>
-         <lastmod>2026-10-14</lastmod>
+         <lastmod>2026-10-16</lastmod>
     </url>
 </urlset>

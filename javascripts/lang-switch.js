@@ -7,7 +7,7 @@
   // names (both case studies use them), so matching needs the parent
   // segment too, not just the last one.
   var PAGE_GROUPS = [
-    { parent: "case_study_1", langs: { Python: "python", R: "r" } },
+    { parent: "case_study_1", langs: { Python: "python", R: "r", Matlab: "matlab" } },
     { parent: "case_study_2", langs: { Python: "python", R: "r" } },
   ];
 
@@ -22,6 +22,16 @@
   var SCRIPT_EXT = {
     Python: "py",
     R: "R",
+    Matlab: "m",
+  };
+
+  // Matlab has no notebook format - its page is a plain .md embedding the
+  // .m script directly, so there's no second "download the notebook"
+  // artefact distinct from the page's own source, unlike Python/R.
+  var HAS_NOTEBOOK = {
+    Python: true,
+    R: true,
+    Matlab: false,
   };
 
   function currentGroup() {
@@ -100,12 +110,14 @@
     var wrapper = document.createElement("div");
     wrapper.className = "download-code-button";
 
-    var nbLink = document.createElement("a");
-    nbLink.className = "md-button";
-    nbLink.href = nbFile;
-    nbLink.setAttribute("download", parent + "_" + nbFile);
-    nbLink.textContent = "Download the notebook (.ipynb)";
-    wrapper.appendChild(nbLink);
+    if (nbFile) {
+      var nbLink = document.createElement("a");
+      nbLink.className = "md-button";
+      nbLink.href = nbFile;
+      nbLink.setAttribute("download", parent + "_" + nbFile);
+      nbLink.textContent = "Download the notebook (.ipynb)";
+      wrapper.appendChild(nbLink);
+    }
 
     // The plain-script version lives in a separate case_studies/scripts/
     // folder: mkdocs-jupyter's own sibling-file copying only handles one
@@ -146,7 +158,7 @@
     var segments = window.location.pathname.split("/").filter(Boolean);
     var parent = segments[segments.length - 2];
     var langSlug = found.langs[found.current];
-    var nbFile = langSlug + ".ipynb";
+    var nbFile = HAS_NOTEBOOK[found.current] ? langSlug + ".ipynb" : null;
     var scriptExt = SCRIPT_EXT[found.current] || "txt";
     var scriptFile = langSlug + "." + scriptExt;
     var scriptLabel = "." + scriptExt;

@@ -1164,7 +1164,13 @@
 </tr>
 </tbody>
 </table>
-<p>40 subjects (41 rows including the header) in every file.</p>
+<p>Each file has 45 rows (46 with the header): 40 clean participants used
+in the final analyses, plus 5 deliberately added with missing or
+implausible values, so each case study has something real to detect and
+exclude (see its <strong>Data Wrangling</strong> section). The audit trail
+(<code>data/EEG/PSD/subject_id_mapping.csv</code>) flags these five with a <code>-dup</code>
+suffix, since they are duplicated spectra rather than independent
+recordings.</p>
 <h2 id="whats-synthetic-and-whats-real">What's synthetic and what's real<a class="headerlink" href="#whats-synthetic-and-whats-real" title="Permanent link">¶</a></h2>
 <div class="grid cards">
 <ul>
@@ -1182,7 +1188,11 @@ patient data.</p>
 <p>Case Study 2's EEG spectra are real, anonymised recordings from the
 PATHS study (<code>data/EEG/PSD/psd_matrix.npy</code>, <code>psd_log_matrix.npy</code>,
 computed by <code>data/EEG/PSD/compute_psd.ipynb</code> from real epoched
-recordings), authorised for publication here.</p>
+recordings), authorised for publication here. Case Study 2 itself
+reads the <code>_full</code> variants of these two arrays
+(<code>psd_log_matrix_full.npy</code>, <code>psd_matrix_full.npy</code>), which also
+include the 5 duplicated spectra mentioned above — the original
+40-recording files are never modified.</p>
 </li>
 </ul>
 </div>
