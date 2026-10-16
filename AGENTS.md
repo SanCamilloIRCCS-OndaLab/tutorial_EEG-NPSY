@@ -2,7 +2,7 @@
 
 ## What this is
 
-Multi-language tutorial for EEG data analysis. **Python** and **R** are both functional for Case Study 1 (`python/CaseStudy_1/CaseStudy_1.ipynb`, `r/case1/code/CaseStudy_1.ipynb`) and Case Study 2 (`python/CaseStudy_2/CaseStudy_2.ipynb`, `r/case2/code/CaseStudy_2.ipynb`), treated as equal, independent implementations rather than one language being primary — R kernel `ir_eegnpsi` (points at the `eegnpsi` conda env's own R install). **Matlab** is still a scaffold only (`.gitkeep` — no real code yet); more languages may be added over time. Data is synthetic/mock, except Case Study 2's EEG spectra (real, see `data/generate_datasets.ipynb`).
+Multi-language tutorial for EEG data analysis. **Python** and **R** are both functional for Case Study 1 (`python/CaseStudy_1/CaseStudy_1.ipynb`, `r/case1/code/CaseStudy_1.ipynb`) and Case Study 2 (`python/CaseStudy_2/CaseStudy_2.ipynb`, `r/case2/code/CaseStudy_2.ipynb`), treated as equal, independent implementations rather than one language being primary — R kernel `ir_eegnpsi` (points at the `eegnpsi` conda env's own R install). **Matlab** is functional for Case Study 1 (`matlab/case1/code/CaseStudy_1.m`, a plain script, no notebook format) but Case Study 2 is still a scaffold only (`matlab/case2/` — `.gitkeep`, no real code yet); more languages may be added over time. Data is synthetic/mock, except Case Study 2's EEG spectra (real, see `data/generate_datasets.ipynb`).
 
 Case Study 2's R implementation has no MNE equivalent for electrode positions/adjacency/topomaps, so it reads three small pre-exported CSVs (`data/EEG/PSD/montage_ch_pos_3d.csv`, `montage_ch_pos_2d.csv`, `montage_adjacency_edges.csv`, `montage_outline.csv`) instead — generated from the real montage by `data/EEG/PSD/compute_montage_assets.ipynb`. Everything downstream (cluster-permutation stats, topomap interpolation) is plain R (`Matrix`, `igraph`, base `loess`), no new heavy dependency.
 
@@ -14,7 +14,8 @@ Case Study 2's R implementation has no MNE equivalent for electrode positions/ad
   - `CaseStudy_1/CaseStudy_1.ipynb`, `CaseStudy_2/CaseStudy_2.ipynb` — hand-maintained notebooks (no build script generates them)
   - `CaseStudy_1/CaseStudy_1.py`, `CaseStudy_2/CaseStudy_2.py` — plain-script mirrors of the notebooks, for running without Jupyter; **generated**, do not hand-edit (see "Regenerating the plain scripts" below)
   - `CaseStudy_1/outputs`, `CaseStudy_2/outputs` — output directories (figures, reports, results), next to their notebook
-- `r/` — `case1/` and `case2/` are both functional (`code/CaseStudy_N.ipynb` + `code/CaseStudy_N.R` plain-script mirror, same generated/do-not-hand-edit rule as the Python ones + `outputs/{figures,results}`); `matlab/` is still an empty scaffold (code/ + outputs/ subdirs with `.gitkeep`)
+- `r/` — `case1/` and `case2/` are both functional (`code/CaseStudy_N.ipynb` + `code/CaseStudy_N.R` plain-script mirror, same generated/do-not-hand-edit rule as the Python ones + `outputs/{figures,results}`)
+- `matlab/` — `case1/` is functional (`code/CaseStudy_1.m`, a hand-maintained plain script — no notebook, no generated-script step — plus `code/swtest.m`/`redblue_colormap.m` helpers and `outputs/{figures,results}`); `case2/` is still an empty scaffold (`code/` + `outputs/` subdirs with `.gitkeep`)
 - `website/` — MkDocs documentation source. `docs/case_studies/case_study_N/{python,r}.ipynb` are symlinks to the real notebooks above; `docs/case_studies/scripts/case_study_N_{python,r}.{py,R}` are symlinks to the plain scripts. The `mkdocs-jupyter` plugin is configured to `ignore` that `scripts/` folder (see `mkdocs.yml`) so it copies those files verbatim instead of trying to render them as jupytext notebooks.
 - `useful_materials/` — supplementary notebooks and pseudocode (not part of main pipeline)
 
@@ -92,7 +93,7 @@ This repo has none. Don't look for them.
 - `dataset_NPSY.csv`: `age`, `sex`, `criq`, `apacs`, `att_matr`, `moca`
 - `dataset_ERP.csv`: `n400_amp`, `n400_lat`, `p300_amp`, `p300_lat`
 - `dataset_PSD.csv`: `mean_power`, `delta_power`, `theta_power`, `alpha_power`, `beta_power`, `gamma_power`
-- 40 subjects (41 rows including header)
+- 45 subjects (46 rows including header): 40 clean + 5 deliberately added with missing/implausible values (Section 8 of `generate_datasets.ipynb`), which each Case Study's Data Wrangling section detects and excludes, bringing the analysed N back to 40. `data/EEG/PSD/subject_id_mapping.csv` flags the 5 added rows with a `-dup` suffix on their `real_eeg_subject_id` (they are duplicated spectra, not independent recordings). Case Study 2 reads the matching 45-subject `psd_log_matrix_full.npy`/`psd_matrix_full.npy`/`subject_ids_full.txt`, not the original 40-subject `psd_log_matrix.npy`/`psd_matrix.npy`/`subject_ids.txt` (which `generate_datasets.ipynb` reads as input and never overwrites).
 
 ## Useful materials
 

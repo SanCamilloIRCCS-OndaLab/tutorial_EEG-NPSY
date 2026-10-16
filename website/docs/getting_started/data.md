@@ -14,7 +14,13 @@ Three CSV files, all linked by `subject_id`, all generated together by
 | `dataset_ERP.csv` | <span class="data-badge data-badge--synthetic">Synthetic</span> | `n400_amp`, `n400_lat`, `p300_amp`, `p300_lat` | Case Study 1 |
 | `dataset_PSD.csv` | <span class="data-badge data-badge--real">Real</span> | `mean_power`, `delta_power`, `theta_power`, `alpha_power`, `beta_power`, `gamma_power` | Case Study 2 (summary only — the real analysis uses the full arrays below) |
 
-40 subjects (41 rows including the header) in every file.
+Each file has 45 rows (46 with the header): 40 clean participants used
+in the final analyses, plus 5 deliberately added with missing or
+implausible values, so each case study has something real to detect and
+exclude (see its **Data Wrangling** section). The audit trail
+(`data/EEG/PSD/subject_id_mapping.csv`) flags these five with a `-dup`
+suffix, since they are duplicated spectra rather than independent
+recordings.
 
 ## What's synthetic and what's real
 
@@ -36,7 +42,11 @@ Three CSV files, all linked by `subject_id`, all generated together by
     Case Study 2's EEG spectra are real, anonymised recordings from the
     PATHS study (`data/EEG/PSD/psd_matrix.npy`, `psd_log_matrix.npy`,
     computed by `data/EEG/PSD/compute_psd.ipynb` from real epoched
-    recordings), authorised for publication here.
+    recordings), authorised for publication here. Case Study 2 itself
+    reads the `_full` variants of these two arrays
+    (`psd_log_matrix_full.npy`, `psd_matrix_full.npy`), which also
+    include the 5 duplicated spectra mentioned above — the original
+    40-recording files are never modified.
 
 </div>
 
