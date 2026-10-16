@@ -132,11 +132,11 @@ read_npy <- function(path) {
   aperm(array(vals, dim = rev(shape)), rev(seq_along(shape)))
 }
 
-psd_log <- read_npy(file.path(PSD_DIR, "psd_log_matrix.npy"))
+psd_log <- read_npy(file.path(PSD_DIR, "psd_log_matrix_full.npy"))
 freqs   <- read_npy(file.path(PSD_DIR, "freq_axis.npy"))
 ch_names <- readLines(file.path(PSD_DIR, "channel_names.txt"))
 ch_names <- ch_names[nzchar(ch_names)]
-subject_ids <- readLines(file.path(PSD_DIR, "subject_ids.txt"))
+subject_ids <- readLines(file.path(PSD_DIR, "subject_ids_full.txt"))
 subject_ids <- subject_ids[nzchar(subject_ids)]
 
 npsy <- read.csv(NPSY_CSV)
@@ -154,7 +154,31 @@ stopifnot(nrow(npsy) == n_subj)
 stopifnot(all(npsy$subject_id == subject_ids))
 cat("Subject alignment OK.\n")
 
-# ### 1.2 Initial inspection
+# ### 1.2 Missing data and outliers
+#
+# As in Case Study 1 (see its Sections 1.3-1.6 for the full walk-through),
+# a few participants have missing or implausible values. Since this is the
+# same dataset, we exclude the same subjects here before any further
+# inspection.
+
+subj_to_exclude <- c("sub-016", "sub-019", "sub-024", "sub-036", "sub-044")
+
+cat("Missing values in NPSY table:\n")
+print(colSums(is.na(npsy)))
+
+keep_mask <- !(npsy$subject_id %in% subj_to_exclude)
+npsy <- npsy[keep_mask, ]
+rownames(npsy) <- NULL
+erp <- erp[keep_mask, ]
+rownames(erp) <- NULL
+psd_log <- psd_log[keep_mask, , ]
+subject_ids <- subject_ids[keep_mask]
+n_subj <- dim(psd_log)[1]
+
+stopifnot(all(npsy$subject_id == subject_ids))
+cat(sprintf("\nExcluded %d participants - %d remaining.\n", length(subj_to_exclude), n_subj))
+
+# ### 1.3 Initial inspection
 #
 # A quick sanity check before anything else: does the grand-average
 # spectrum look like a real EEG spectrum (1/f-like decay, no obvious line
@@ -198,15 +222,6 @@ cat(sprintf("Flagged participants (implausible spectrum): %d\n", length(flagged)
 # > often with a small bump around 8–13 Hz (the alpha rhythm). A flat line,
 # > a spectrum with no decay, or a sharp spike at a single frequency (line
 # > noise, typically 50 or 60 Hz) would be a data-quality warning sign.
-
-# ### 1.3 Missing data
-#
-# Same check as Case Study 1: any missing values in either table?
-
-cat("Missing values in NPSY table:\n")
-print(colSums(is.na(npsy)))
-cat(sprintf("\nMissing values in PSD array: %d (out of %d points)\n",
-            sum(is.na(psd_log)), length(psd_log)))
 
 # ### 1.4 Log-power distribution check
 #

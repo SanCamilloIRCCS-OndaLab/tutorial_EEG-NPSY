@@ -161,10 +161,9 @@ if (sum(is.na(df)) == 0) {
     annotate("text", x = 0, y = 0, label = "No missing data", size = 6) +
     theme_void() + ggtitle("Missing data matrix")
 } else {
-  miss_long <- df %>%
+  miss_long <- as.data.frame(is.na(df)) %>%
     mutate(row = row_number()) %>%
-    pivot_longer(-row, names_to = "variable", values_to = "value") %>%
-    mutate(missing = is.na(value))
+    pivot_longer(-row, names_to = "variable", values_to = "missing")
   fig_missing <- ggplot(miss_long, aes(variable, row, fill = missing)) +
     geom_tile() +
     scale_fill_manual(values = c(`FALSE` = "grey90", `TRUE` = "firebrick")) +
@@ -276,6 +275,32 @@ if (!found) cat("  None detected.\n")
 
 # **Decision rule:** If clinically suspicious outliers exist, we run the
 # analysis with and without them as a sensitivity check and report both.
+
+# ### 1.6 Cleaning dataset
+#
+# Let's remove the missing data and the outliers.
+#
+# There are three outliers that are not plausible data: Age 150, N400
+# Amplitude 25 uV, P300 latency 900ms. We will remove these subjects.
+#
+# However the value of 3 for attentive matrices is very low but it is also
+# very plausible in a patient dataset, therefore we will keep this
+# outlier.
+
+missing_mask <- apply(is.na(df[, vars]), 1, any)
+
+# Outliers: exclude only the implausible ones found in Section 1.5 - keep
+# the att_matr outlier, since it is a plausible (if low) clinical value
+implausible_cols <- c("age", "n400_amp", "p300_lat")
+outlier_mask <- apply(out_mask[, implausible_cols], 1, any)
+
+exclude_mask <- missing_mask | outlier_mask
+cat(sprintf("Excluding %d participants:\n", sum(exclude_mask)))
+print(df[exclude_mask, c("subject_id", vars)], row.names = FALSE)
+
+df <- df[!exclude_mask, ]
+rownames(df) <- NULL
+cat(sprintf("\nRemaining: %d participants\n", nrow(df)))
 
 # ---
 # ## 2. Analysis

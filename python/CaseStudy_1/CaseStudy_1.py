@@ -385,7 +385,7 @@ plt.show()
 
 mod_apacs_formula = "apacs ~ n400_lat + n400_amp + age"
 
-mod_apacs = smf.glm(formula=mod_apacs_formula, data=df, family=sm.families.Gaussian()).fit() 
+mod_apacs = smf.glm(formula=mod_apacs_formula, data=df, family=sm.families.Gaussian()).fit(use_t=True) 
 
 print(mod_apacs.summary())
 
@@ -403,7 +403,7 @@ print(mod_apacs.summary())
 
 mod_att_matr_full_formula = "att_matr ~ p300_lat + p300_amp + n400_lat + n400_amp + age + sex + criq"
 
-mod_att_matr_full = smf.glm(formula=mod_att_matr_full_formula, data=df, family=sm.families.Gaussian()).fit() 
+mod_att_matr_full = smf.glm(formula=mod_att_matr_full_formula, data=df, family=sm.families.Gaussian()).fit(use_t=True) 
 
 print(mod_att_matr_full.summary())
 
@@ -430,7 +430,7 @@ print(mod_att_matr_full.summary())
 
 mod_att_matr_pars_formula = "att_matr ~ p300_amp + age + criq"
 
-mod_att_matr_pars = smf.glm(formula=mod_att_matr_pars_formula, data=df, family=sm.families.Gaussian()).fit() 
+mod_att_matr_pars = smf.glm(formula=mod_att_matr_pars_formula, data=df, family=sm.families.Gaussian()).fit(use_t=True) 
 
 print(mod_att_matr_pars.summary())
 
