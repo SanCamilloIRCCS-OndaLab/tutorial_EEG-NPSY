@@ -161,8 +161,8 @@ for i = 1:numel(vars)
   histogram(v, 10);
   hold on;
   yl = ylim();
-  plot([mean(v) mean(v)], yl, "r--", "LineWidth", 1.2);
-  plot([median(v) median(v)], yl, "g:", "LineWidth", 1.2);
+  plot([mean(v, "omitnan") mean(v, "omitnan")], yl, "r--", "LineWidth", 1.2);
+  plot([median(v, "omitnan") median(v, "omitnan")], yl, "g:", "LineWidth", 1.2);
   title(sprintf("%s (n=%d)", col, numel(v)), "Interpreter", "none");
   xlabel(col, "Interpreter", "none"); ylabel("Frequency");
 
@@ -179,7 +179,7 @@ for i = 1:numel(vars)
   test_used = "Shapiro-Wilk";
   if kurtosis(v) > 3; test_used = "Shapiro-Francia"; end
   fprintf("  %-10s: n=%d, mean=%.2f, SD=%.2f, W=%.4f, p=%.4f, skew=%.3f, kurt=%.3f (%s)\n", ...
-          col, numel(v), mean(v), std(v), W, p, skewness(v), kurtosis(v) - 3, test_used);
+          col, numel(v), mean(v, "omitnan"), std(v, "omitnan"), W, p, skewness(v), kurtosis(v) - 3, test_used);
 end
 
 % What do we see in the plot?
@@ -196,13 +196,15 @@ end
 %% 1.5 Outlier detection
 % Flag values beyond +-3 standard deviations.
 
+out_mask = false(n_subj, numel(vars));
 fprintf("Outliers (+-3 SD):\n");
 found_any = false;
 for i = 1:numel(vars)
   col = vars{i};
   v = df.(col);
-  z = (v - mean(v)) / std(v);
+  z = (v - mean(v, "omitnan")) / std(v, "omitnan");
   flagged = find(abs(z) > 3);
+  out_mask(flagged, i) = true;
   if ~isempty(flagged)
     found_any = true;
     fprintf("  %s: rows %s\n", col, mat2str(flagged'));
@@ -214,6 +216,32 @@ end
 if ~found_any
   fprintf("  None detected.\n");
 end
+
+%% 1.6 Cleaning dataset
+% Let's remove the missing data and the outliers.
+%
+% There are three outliers that are not plausible data: Age 150, N400
+% Amplitude 25 uV, P300 latency 900ms. We will remove these subjects.
+%
+% However the value of 3 for attentive matrices is very low but it is
+% also very plausible in a patient dataset, therefore we will keep this
+% outlier.
+
+missing_mask = any(miss_mat, 2);
+
+% Outliers: exclude only the implausible ones found in Section 1.5 - keep
+% the att_matr outlier, since it is a plausible (if low) clinical value
+implausible_cols = {'age', 'n400_amp', 'p300_lat'};
+[~, implausible_idx] = ismember(implausible_cols, vars);
+outlier_mask = any(out_mask(:, implausible_idx), 2);
+
+exclude_mask = missing_mask | outlier_mask;
+fprintf("Excluding %d participants:\n", sum(exclude_mask));
+disp(df(exclude_mask, [{'subject_id'}, vars]));
+
+df = df(~exclude_mask, :);
+n_subj = height(df);
+fprintf("\nRemaining: %d participants\n", n_subj);
 
 %% 2. Analysis
 %% 2.1 Descriptive statistics (Table 1)
