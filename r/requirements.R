@@ -8,9 +8,9 @@ options(repos = c(CRAN = "https://cloud.r-project.org"))  # install.packages()
                                                             # Rscript session
 
 install.packages(c(
-  "tidyverse",  # readr, dplyr, tidyr, purrr, stringr, ggplot2 - plus broom
-                # (tidy model tables) and cli (status messages), which it
-                # installs too
+  "dplyr",      # data wrangling (joins, filtering, ...)
+  "tidyr",      # pivot_longer, drop_na
+  "ggplot2",    # all plots
   "patchwork",  # combine ggplot2 panels into one figure
   "car",        # Variance Inflation Factor (car::vif) - Case Study 1
   "psych",      # skewness / kurtosis (psych::skew, psych::kurtosi) - Case Study 1

@@ -55,7 +55,6 @@ extra_css:
 extra_javascript:
   - javascripts/lang-switch.js
   - javascripts/section-nav.js
-  - javascripts/inspect-cells.js
 
 extra:
   social:

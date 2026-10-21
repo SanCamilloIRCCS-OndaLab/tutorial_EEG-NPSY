@@ -27,34 +27,6 @@ region, analysed with cluster-based permutation testing.
 
 </div>
 
-!!! info "How the code is built"
-    Like almost any real analysis, this case study combines **functions
-    from established packages** with **a few custom functions**.
-    
-    - **Python:** MNE provides the EEG-specific building blocks (the
-      electrode montage, channel adjacency, topographic maps), and NumPy,
-      pandas and statsmodels handle the rest. The cluster-based permutation
-      test is a short custom function built on top of these, because it
-      uses partial correlation with covariates.
-    - **R:** the tidyverse and broom handle the data, models and plots. To
-      keep the dependencies light, three EEG-specific steps are small
-      custom functions in `r/case2/code/R/`: reading NumPy `.npy` files,
-      the cluster-based permutation test, and the topographic map. R
-      packages exist for parts of this, such as `reticulate`, `permuco`
-      and `eegUtils`. Each custom function is hidden by default in the
-      notebook, and a collapsed cell lets you print its source code.
-
-!!! warning "The R cluster-permutation code is not a validated implementation"
-    The custom R functions for this case study (the cluster-based
-    permutation test, the topographic map and the `.npy` reader) are
-    minimal, teaching implementations, written only so the tutorial runs in
-    R without extra dependencies. They are **not extensively tested**, and
-    they are **not** a validated or published implementation of
-    cluster-based permutation testing. The same holds for the short
-    cluster-test function in the Python version. For real analyses, use
-    established, peer-reviewed tools: MNE-Python (`mne.stats`), FieldTrip,
-    or R packages such as `permuco`.
-
 ## Research question
 
 > Does the spectral profile of resting-state EEG relate to global

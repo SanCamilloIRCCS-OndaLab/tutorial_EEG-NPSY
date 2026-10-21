@@ -1,5 +1,5 @@
 mkdocs>=1.5,<2.0
 mkdocs-material>=9.5
-mkdocs-glightbox>=0.3,<0.5.2   # 0.5.2 drops the <img> tags on the case-study overview pages
+mkdocs-glightbox>=0.3
 mkdocs-jupyter>=0.24
 pymdown-extensions>=12.0   # <12.0 has a bug that breaks code fences nested inside === tabs

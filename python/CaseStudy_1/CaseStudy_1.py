@@ -34,13 +34,8 @@ matplotlib.use("Agg")  # run headlessly: save figures to disk instead of popping
 #    diagnostics, multiple comparison correction
 # 3. **Export** — save tables and figures
 #
-# > **How this code is built.** Like almost any real analysis, this
-# > notebook combines functions from established packages (pandas, NumPy,
-# > SciPy, statsmodels, matplotlib, seaborn) - which do most of the work -
-# > with some custom code for the steps specific to this study, such as
-# > checking values against our clinical ranges. Here the custom code is
-# > written directly in the notebook, next to where it is used, so every
-# > step can be read in place. Each step is explained as we go.
+# > All code is defined directly here for transparency and
+# > reproducibility. Each step is explained as we go.
 #
 
 # ## 0. Setup
@@ -697,6 +692,5 @@ print(f"Saved: {xlsx_path}")
 #
 # ---
 #
-# *Generated for the EEG-NPSY tutorial. The analysis uses standard Python
-# packages plus a few helper functions defined in this notebook - all of it
-# open for inspection.*
+# *Generated for the EEG-NPSY tutorial. All code is self-contained
+# for transparency and reproducibility.*

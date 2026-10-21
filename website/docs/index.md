@@ -42,26 +42,6 @@ performance? Each one follows a full pipeline — data wrangling, descriptive
 statistics, association analysis, modelling and diagnostics, export — with
 plain-language explanations aimed at readers with no statistics background.
 
-!!! info "How an analysis is built: packages + your own code"
-    Almost any real analysis is a combination of two things:
-
-    - **Functions from existing packages (or toolboxes)**, which do most of
-      the work: reading and reshaping data, statistical tests and models,
-      plots. For example pandas, statsmodels and MNE in Python, the
-      tidyverse, broom and car in R, the Statistics and Machine Learning
-      Toolbox in Matlab. These are widely used and tested, so there is
-      rarely a reason to rewrite what they already do.
-    - **Some custom functions and code**, where needed, for the steps no
-      package does exactly the way your study needs: a check against your
-      own clinical ranges, a table formatted for your report, a method that
-      isn't available in your language.
-
-    The case studies follow this pattern. In the R versions, for example,
-    the custom functions live in a separate `R/` folder next to the
-    notebook, as if they came from a small package of your own. They are
-    hidden by default so the notebook reads as the analysis itself, but you
-    can expand any of them to see exactly what it does.
-
 <div class="case-study-cards">
 
 <a class="case-study-card" href="case_studies/case_study_1/">

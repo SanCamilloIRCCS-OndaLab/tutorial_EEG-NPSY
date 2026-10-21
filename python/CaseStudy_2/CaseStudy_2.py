@@ -51,15 +51,6 @@ matplotlib.use("Agg")  # run headlessly: save figures to disk instead of popping
 #
 # > This analysis needs more than Case Study 1: `mne` for electrode
 # > positions, spatial adjacency, and topographic plots.
-# >
-# > **How this code is built.** Like almost any real analysis, this
-# > notebook combines functions from established packages (NumPy, pandas,
-# > statsmodels, MNE, matplotlib) with a few custom functions for what no
-# > package does exactly as needed here - e.g. the partial-correlation
-# > cluster-based permutation test, a short didactic implementation built
-# > on MNE's adjacency tools and not extensively tested. The custom
-# > functions are defined directly in the notebook, next to where they are
-# > used.
 
 # ## 0. Setup
 
@@ -701,6 +692,5 @@ print(f"Saved: {xlsx_path}")
 #
 # ---
 #
-# *Generated for the EEG-NPSY tutorial. The analysis uses standard Python
-# packages plus a few helper functions defined in this notebook - all of it
-# open for inspection.*
+# *Generated for the EEG-NPSY tutorial. All code is self-contained
+# for transparency and reproducibility.*
