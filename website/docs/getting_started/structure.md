@@ -19,7 +19,9 @@ python/                 Python case studies
 
 r/                      R case studies
   case1/code/            CaseStudy_1.ipynb + outputs/
+    R/                   the notebook's helper functions, loaded like a small package
   case2/code/            CaseStudy_2.ipynb + outputs/
+    R/                   the notebook's helper functions, loaded like a small package
 
 matlab/                 not started yet
 

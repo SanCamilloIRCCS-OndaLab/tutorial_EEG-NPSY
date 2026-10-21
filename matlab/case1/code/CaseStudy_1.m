@@ -29,7 +29,11 @@
 %      three regression models, post-hoc assumption checking
 %   3. Export          - save tables and figures
 %
-% All code is defined directly here for transparency and reproducibility.
+% How this code is built: like almost any real analysis, this script
+% combines functions from MATLAB and its Statistics and Machine Learning
+% Toolbox - which do most of the work - with a few custom functions and code
+% for the steps specific to this study (e.g. swtest.m and
+% redblue_colormap.m, next to this script). Each step is explained as we go.
 
 %% 0. Setup
 
@@ -522,5 +526,5 @@ fprintf("Saved: %s\n", xlsx_path);
 %
 % For a full discussion, see Section 4.2 of the companion paper.
 %
-% Generated for the EEG-NPSY tutorial. All code is self-contained for
-% transparency and reproducibility.
+% Generated for the EEG-NPSY tutorial. The analysis uses MATLAB toolboxes
+% plus a few custom functions and code - all of it open for inspection.
