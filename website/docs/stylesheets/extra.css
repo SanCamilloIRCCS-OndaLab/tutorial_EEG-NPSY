@@ -570,3 +570,39 @@
   flex-wrap: wrap;
   gap: 0.6rem;
 }
+
+/* Collapsible "inspect the helper function" cells in the R notebooks
+   (docs/javascripts/inspect-cells.js wraps every cell tagged "inspect") */
+.inspect-helper {
+  margin: 0.6rem 0 1rem;
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-left: 3px solid var(--md-accent-fg-color);
+  border-radius: 0.2rem;
+}
+
+.inspect-helper > summary {
+  padding: 0.4rem 0.8rem;
+  cursor: pointer;
+  font-size: 0.72rem;
+  color: var(--md-default-fg-color--light);
+}
+
+.inspect-helper > summary:hover {
+  color: var(--md-accent-fg-color);
+}
+
+.inspect-helper[open] > summary {
+  border-bottom: 1px solid var(--md-default-fg-color--lightest);
+}
+
+/* the tag itself is an implementation detail - hide the "inspect" chip */
+.inspect-helper .celltoolbar {
+  display: none;
+}
+
+/* R notebooks report progress with the cli package, which writes to
+   stderr: show it as ordinary output, not with the pink error background */
+.md-typeset .jupyter-wrapper .jp-RenderedText[data-mime-type="application/vnd.jupyter.stderr"] {
+  background: transparent;
+  border-left: 3px solid var(--md-default-fg-color--lightest);
+}

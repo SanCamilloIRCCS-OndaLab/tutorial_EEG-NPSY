@@ -4,7 +4,7 @@
 
 Multi-language tutorial for EEG data analysis. **Python** and **R** are both functional for Case Study 1 (`python/CaseStudy_1/CaseStudy_1.ipynb`, `r/case1/code/CaseStudy_1.ipynb`) and Case Study 2 (`python/CaseStudy_2/CaseStudy_2.ipynb`, `r/case2/code/CaseStudy_2.ipynb`), treated as equal, independent implementations rather than one language being primary — R kernel `ir_eegnpsi` (points at the `eegnpsi` conda env's own R install). **Matlab** is functional for Case Study 1 (`matlab/case1/code/CaseStudy_1.m`, a plain script, no notebook format) but Case Study 2 is still a scaffold only (`matlab/case2/` — `.gitkeep`, no real code yet); more languages may be added over time. Data is synthetic/mock, except Case Study 2's EEG spectra (real, see `data/generate_datasets.ipynb`).
 
-Case Study 2's R implementation has no MNE equivalent for electrode positions/adjacency/topomaps, so it reads three small pre-exported CSVs (`data/EEG/PSD/montage_ch_pos_3d.csv`, `montage_ch_pos_2d.csv`, `montage_adjacency_edges.csv`, `montage_outline.csv`) instead — generated from the real montage by `data/EEG/PSD/compute_montage_assets.ipynb`. Everything downstream (cluster-permutation stats, topomap interpolation) is plain R (`Matrix`, `igraph`, base `loess`), no new heavy dependency.
+Case Study 2's R implementation has no MNE equivalent for electrode positions/adjacency/topomaps, so it reads three small pre-exported CSVs (`data/EEG/PSD/montage_ch_pos_3d.csv`, `montage_ch_pos_2d.csv`, `montage_adjacency_edges.csv`, `montage_outline.csv`) instead — generated from the real montage by `data/EEG/PSD/compute_montage_assets.ipynb`. Everything downstream (cluster-permutation stats, topomap interpolation) is plain R (`Matrix`, `igraph`, base `loess`) in the helper functions under `r/case2/code/R/`, no new heavy dependency.
 
 ## Repo structure
 
@@ -15,6 +15,10 @@ Case Study 2's R implementation has no MNE equivalent for electrode positions/ad
   - `CaseStudy_1/CaseStudy_1.py`, `CaseStudy_2/CaseStudy_2.py` — plain-script mirrors of the notebooks, for running without Jupyter; **generated**, do not hand-edit (see "Regenerating the plain scripts" below)
   - `CaseStudy_1/outputs`, `CaseStudy_2/outputs` — output directories (figures, reports, results), next to their notebook
 - `r/` — `case1/` and `case2/` are both functional (`code/CaseStudy_N.ipynb` + `code/CaseStudy_N.R` plain-script mirror, same generated/do-not-hand-edit rule as the Python ones + `outputs/{figures,results}`)
+  - Written as idiomatic tidyverse R: `readr`/`dplyr`/`tidyr`/`purrr`/`ggplot2`, `broom` for model tables, `cli` for status messages, and tibbles/plots that auto-print. Don't use `cat(sprintf(...))` for output.
+  - Generic helper functions live in `code/R/*.R` (one file per topic, roxygen-style headers), as if they came from a small package. Setup loads them with `list.files("R", ...) %>% walk(~ source(.x, keep.source = TRUE))`. Analysis-specific steps stay in the notebook.
+  - Where a helper is first used, a code cell tagged `inspect` (cell metadata `"tags": ["inspect"]`, `"jupyter": {"outputs_hidden": true}`) prints its source with `print(fn)`; `print()` is needed because IRkernel's HTML repr of a function drops its comments. On the site, `website/docs/javascripts/inspect-cells.js` wraps every `.celltag_inspect` cell in a collapsed `<details>`.
+  - The Case Study 2 helpers (`.npy` reader, cluster-based permutation, topomap) are minimal teaching implementations and must keep their "not extensively tested / not a validated implementation" caution, both in the code and on the site.
 - `matlab/` — `case1/` is functional (`code/CaseStudy_1.m`, a hand-maintained plain script — no notebook, no generated-script step — plus `code/swtest.m`/`redblue_colormap.m` helpers and `outputs/{figures,results}`); `case2/` is still an empty scaffold (`code/` + `outputs/` subdirs with `.gitkeep`)
 - `website/` — MkDocs documentation source. `docs/case_studies/case_study_N/{python,r}.ipynb` are symlinks to the real notebooks above; `docs/case_studies/scripts/case_study_N_{python,r}.{py,R}` are symlinks to the plain scripts. The `mkdocs-jupyter` plugin is configured to `ignore` that `scripts/` folder (see `mkdocs.yml`) so it copies those files verbatim instead of trying to render them as jupytext notebooks.
 - `useful_materials/` — supplementary notebooks and pseudocode (not part of main pipeline)
@@ -39,6 +43,11 @@ def notebook_to_script(nb_path, header_comment, headless_backend=False, wrap_dis
             continue
         if cell.cell_type == "markdown":
             lines += [("# " + l).rstrip() for l in src.split("\n")] + [""]
+        elif "inspect" in cell.metadata.get("tags", []):
+            # R "inspect" cells only print a helper's source: comment them
+            # out, so a script run doesn't dump whole functions
+            lines += [l if l.startswith("#") else ("# " + l).rstrip()
+                      for l in src.rstrip("\n").split("\n")] + [""]
         else:
             for line in src.rstrip("\n").split("\n"):
                 stripped = line.strip()
@@ -57,6 +66,8 @@ def notebook_to_script(nb_path, header_comment, headless_backend=False, wrap_dis
 Two Python-only gotchas this handles, that R doesn't need (R auto-prints visible top-level values even under `Rscript`, Python doesn't run a plain `.py`):
 - `display(x)` (Jupyter/IPython-only) → `print(x)`
 - bare trailing expressions relying on Jupyter's implicit last-line display (e.g. a cell ending in just `table3_regression` with no `print`) → wrapped in `print(...)`. Check each notebook for these (a cell's last non-comment line that's a bare name/attribute access with no assignment) before regenerating - the current wrap lists are in the git history of this generation step, not persisted as a script in the repo.
+
+For the R scripts, the header comment also says to run the script from its own folder (`r/caseN/code/`), so that `R/` and `../outputs` resolve. Restore the notebooks' `kernelspec` to `ir_eegnpsi` if you executed them with another kernel.
 
 Also set `matplotlib.use("Agg")` before any `pyplot` import in Python scripts specifically - otherwise `plt.show()` can hang or pop up GUI windows when run headlessly outside Jupyter, depending on the environment's available display/backend.
 

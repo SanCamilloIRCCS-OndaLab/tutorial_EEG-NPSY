@@ -1,5 +1,6 @@
 # Generated from CaseStudy_1.ipynb - edit the notebook, not this file.
 # Same code as the notebook, as a plain script (no Jupyter required).
+# Run it from this folder, so the helper functions in R/ are found.
 
 # # Case Study 1 — Analytical strategy based on reduced EEG features (R)
 #
@@ -32,22 +33,52 @@
 #    post-hoc diagnostics
 # 3. **Export** — save tables and figures
 #
-# > All code is defined directly here for transparency and
-# > reproducibility. Each step is explained as we go.
+# ## How this code is built
+#
+# Like almost any real analysis, this notebook combines two things:
+#
+# 1. **Functions from established packages** - the
+#    [tidyverse](https://www.tidyverse.org/) (`readr`, `dplyr`, `tidyr`,
+#    `purrr`, `stringr`, `ggplot2`) to read, reshape and plot the data,
+#    `broom` to turn models into tables, `car` and `psych` for specific
+#    statistics (VIF, skewness/kurtosis), `patchwork` to combine plots,
+#    `openxlsx` for Excel export and `cli` for readable messages. Whatever a
+#    well-tested package already does, we don't rewrite.
+# 2. **A few custom functions** for the steps no package does exactly the way
+#    we need (a range check against our clinical limits, a correlation
+#    heatmap with significance stars, a report-ready regression table, ...).
+#    They live in the [`R/`](https://github.com/SanCamilloIRCCS-OndaLab/tutorial_EEG-NPSY/tree/main/r/case1/code/R) folder next to this notebook and are loaded
+#    in Setup, just as you would load a small package of your own - so the
+#    notebook itself reads as the analysis, step by step.
+#
+# The custom functions are hidden by default, but they are not a black box:
+# wherever one is first used, a collapsed cell lets you print its source code
+# (or simply open the file in `R/`).
+#
+# > ⚠️ **Caution** - the custom functions in `R/` were written for this
+# > tutorial and are not extensively tested beyond the data used here.
 
 # ## 0. Setup
 #
-# Import the libraries we will use throughout the analysis.
+# Load the packages we use throughout the analysis, then our own helper
+# functions from the `R/` folder.
 
-library(dplyr)
-library(tidyr)
-library(ggplot2)
-library(patchwork)  # combine ggplot panels into one figure
-library(car)         # variance inflation factor
-library(psych)        # skewness / kurtosis, common in psych/neuropsych stats
-library(openxlsx)      # Excel export
+suppressPackageStartupMessages({
+  library(tidyverse)  # readr, dplyr, tidyr, purrr, stringr, ggplot2, ...
+  library(broom)      # model results as tidy tibbles
+  library(patchwork)  # combine ggplot panels into one figure
+  library(cli)        # readable status messages
+})
+# car (VIF), psych (skewness/kurtosis) and openxlsx (Excel export) are only
+# needed for one function each, so we call them as pkg::fun() instead of
+# attaching them - that also makes it obvious where each function comes from.
 
 theme_set(theme_minimal())
+
+# Our own helper functions, one file per topic in the R/ folder next to this
+# notebook - loaded the way you would load a small package of your own
+list.files("R", pattern = "\\.R$", full.names = TRUE) %>%
+  walk(~ source(.x, keep.source = TRUE))  # keep.source: printing a helper keeps its comments
 
 # Define input/output folders
 
@@ -70,20 +101,21 @@ dir.create(RESULTS, recursive = TRUE, showWarnings = FALSE)
 #
 # The datasets are stored as separate CSV files linked by `subject_id`.
 
-npsy <- read.csv(NPSY_CSV)
-eeg  <- read.csv(EEG_CSV)
-cat(sprintf("NPSY: %d x %d  columns: %s\n", nrow(npsy), ncol(npsy), paste(colnames(npsy), collapse = ", ")))
-cat(sprintf("EEG:  %d x %d  columns: %s\n", nrow(eeg), ncol(eeg), paste(colnames(eeg), collapse = ", ")))
+npsy <- read_csv(NPSY_CSV, show_col_types = FALSE)
+eeg  <- read_csv(EEG_CSV, show_col_types = FALSE)
+
+glimpse(npsy)
+glimpse(eeg)
 
 # Let's inspect the datasets looking at the first rows: each row stores the NPSY/EEG data of a single subject.
 
-cat("NPSY\n"); print(head(npsy))
-cat("EEG\n"); print(head(eeg))
+head(npsy)
+head(eeg)
 
 # To create a single dataset we need to merge on `subject_id` the data collected for each subject
 
 df <- inner_join(npsy, eeg, by = "subject_id")
-cat(sprintf("Merged: %d subjects x %d variables\n", nrow(df), ncol(df)))
+cli_alert_info("Merged: {nrow(df)} subjects x {ncol(df)} variables")
 head(df)
 
 # ### 1.2 Initial inspection
@@ -104,39 +136,37 @@ head(df)
 # | Attentive Matrices | 0–60            |
 # | MoCA               | 0–30            |
 
-cat(sprintf("Shape: %d rows x %d columns\n\n", nrow(df), ncol(df)))
-cat("First 5 rows:\n"); print(head(df))
-cat("\nDescriptive statistics:\n")
 summary(df)
 
 # From the automatic R summary we see that all parameters are within the expected ranges.
 #
 # However looking at each variable is not the most suitable way to validate data: we can perform a simple automatic check on the allowed ranges.
 
-# Range check - flag values outside expected physiological limits
-ranges <- list(
-  age      = c(18, 100),
-  criq     = c(70, 130),
-  n400_amp = c(0.5, 8),
-  n400_lat = c(300, 550),
-  p300_amp = c(3, 25),
-  p300_lat = c(250, 550),
-  apacs    = c(0, 1),
-  att_matr = c(0, 60),
-  moca     = c(0, 30)
+# Expected physiological/clinical limits for each variable
+ranges <- tribble(
+  ~variable,  ~min, ~max,
+  "age",        18,  100,
+  "criq",       70,  130,
+  "n400_amp",  0.5,    8,
+  "n400_lat",  300,  550,
+  "p300_amp",    3,   25,
+  "p300_lat",  250,  550,
+  "apacs",       0,    1,
+  "att_matr",    0,   60,
+  "moca",        0,   30
 )
 
-cat("Range checks:\n")
-any_warn <- FALSE
-for (col in names(ranges)) {
-  if (!(col %in% colnames(df))) next
-  lo <- ranges[[col]][1]; hi <- ranges[[col]][2]
-  vals <- df[[col]][!is.na(df[[col]])]
-  below <- sum(vals < lo); above <- sum(vals > hi)
-  if (below > 0) { cat(sprintf("  ⚠ %s: %d values below %s\n", col, below, lo)); any_warn <- TRUE }
-  if (above > 0) { cat(sprintf("  ⚠ %s: %d values above %s\n", col, above, hi)); any_warn <- TRUE }
+range_check <- check_ranges(df, ranges)
+range_check
+
+if (all(range_check$ok)) {
+  cli_alert_success("All values within expected ranges.")
+} else {
+  cli_alert_warning("Values outside the expected range in: {.val {range_check$variable[!range_check$ok]}}")
 }
-if (!any_warn) cat("  All values within expected ranges.\n")
+
+# Want to see how it works? Printing a function shows its source code.
+# print(check_ranges)
 
 # ### 1.3 Missing data
 #
@@ -156,28 +186,16 @@ if (!any_warn) cat("  All values within expected ranges.\n")
 #
 # Visual inspection of missing data patterns:
 
-if (sum(is.na(df)) == 0) {
-  fig_missing <- ggplot() +
-    annotate("text", x = 0, y = 0, label = "No missing data", size = 6) +
-    theme_void() + ggtitle("Missing data matrix")
-} else {
-  miss_long <- as.data.frame(is.na(df)) %>%
-    mutate(row = row_number()) %>%
-    pivot_longer(-row, names_to = "variable", values_to = "missing")
-  fig_missing <- ggplot(miss_long, aes(variable, row, fill = missing)) +
-    geom_tile() +
-    scale_fill_manual(values = c(`FALSE` = "grey90", `TRUE` = "firebrick")) +
-    theme(axis.text.y = element_blank(), axis.text.x = element_text(angle = 45, hjust = 1)) +
-    ggtitle("Missing data matrix")
-}
-print(fig_missing)
+fig_missing <- plot_missingness(df)
+fig_missing
 
-cat(sprintf("%-25s %8s %8s\n", "Variable", "Missing", "Rate"))
-cat(strrep("-", 43), "\n")
-for (col in colnames(df)) {
-  n_miss <- sum(is.na(df[[col]]))
-  cat(sprintf("%-25s %8d %7.1f%%\n", col, n_miss, n_miss / nrow(df) * 100))
-}
+# Want to see how it works? Printing a function shows its source code.
+# print(plot_missingness)
+
+df %>%
+  summarise(across(everything(), ~ sum(is.na(.x)))) %>%
+  pivot_longer(everything(), names_to = "variable", values_to = "n_missing") %>%
+  mutate(rate = scales::percent(n_missing / nrow(df), accuracy = 0.1))
 
 # > **What do we see in the plot?**
 # >
@@ -196,30 +214,11 @@ for (col in colnames(df)) {
 
 vars <- c("age", "sex", "criq", "apacs", "att_matr", "moca", "n400_amp", "n400_lat", "p300_amp", "p300_lat")
 
-make_hist <- function(col) {
-  v <- df[[col]]; v <- v[!is.na(v)]
-  ggplot(data.frame(v = v), aes(v)) +
-    geom_histogram(bins = 15, fill = "grey70", color = "white") +
-    geom_vline(xintercept = mean(v), color = "firebrick", linetype = "dashed") +
-    geom_vline(xintercept = median(v), color = "darkgreen", linetype = "dotted") +
-    labs(title = sprintf("%s (n=%d)", col, length(v)), x = col, y = "Frequency") +
-    theme_minimal(base_size = 9)
-}
+fig_dist <- plot_distributions(df, vars)
+fig_dist
 
-make_qq <- function(col) {
-  v <- df[[col]]; v <- v[!is.na(v)]
-  ggplot(data.frame(v = v), aes(sample = v)) +
-    stat_qq(size = 1) + stat_qq_line(color = "firebrick") +
-    labs(title = "Q-Q plot", x = "Theoretical", y = "Sample") +
-    theme_minimal(base_size = 9)
-}
-
-hists <- lapply(vars, make_hist)
-qqs   <- lapply(vars, make_qq)
-
-# 4-row x 5-col layout: hist(1-5), qq(1-5), hist(6-10), qq(6-10)
-fig_dist <- wrap_plots(c(hists[1:5], qqs[1:5], hists[6:10], qqs[6:10]), ncol = 5)
-print(fig_dist)
+# Want to see how it works? Printing a function shows its source code.
+# print(plot_distributions)
 
 # > **What do we see in the plot?**
 # >
@@ -233,15 +232,22 @@ print(fig_dist)
 # >
 # > *Points deviating in the middle only* → unusual peakedness (kurtosis)
 
-cat("Normality tests (Shapiro-Wilk):\n")
-for (col in vars) {
-  v <- df[[col]][!is.na(df[[col]])]
-  if (length(v) < 3) next
-  st <- shapiro.test(v)
-  cat(sprintf("  %s: n=%d, mean=%.2f, SD=%.2f, W=%.4f, p=%.4f, skew=%.3f, kurt=%.3f\n",
-              col, length(v), mean(v), sd(v), st$statistic, st$p.value,
-              skew(v, type = 2), kurtosi(v, type = 2)))
-}
+# Shapiro-Wilk normality test, plus skewness and kurtosis, for every variable
+df %>%
+  select(all_of(vars)) %>%
+  pivot_longer(everything(), names_to = "variable") %>%
+  drop_na(value) %>%
+  mutate(variable = factor(variable, levels = vars)) %>%
+  group_by(variable) %>%
+  summarise(
+    n    = n(),
+    mean = mean(value),
+    sd   = sd(value),
+    W    = shapiro.test(value)$statistic,
+    p    = shapiro.test(value)$p.value,
+    skew = psych::skew(value, type = 2),
+    kurt = psych::kurtosi(value, type = 2)
+  )
 
 # **Interpretation:** all Shapiro-Wilk tests are non-significant (p > 0.05) and skewness values are well below |0.6|, so the variables are approximately normal. Minor scatter in the Q-Q plots is expected with n = 40 and does not indicate a problem.
 
@@ -250,28 +256,11 @@ for (col in vars) {
 # Flag values beyond ±3 standard deviations. We inspect flagged cases and note
 # whether they are data-entry errors or genuine extremes.
 
-out_mask <- as.data.frame(matrix(FALSE, nrow = nrow(df), ncol = length(vars),
-                                  dimnames = list(NULL, vars)))
-for (col in vars) {
-  v <- df[[col]]
-  valid_idx <- which(!is.na(v))
-  vv <- v[valid_idx]
-  if (length(vv) < 3) next
-  z <- abs(scale(vv)[, 1])
-  out_mask[valid_idx[z > 3], col] <- TRUE
-}
+outliers <- flag_outliers_z(df, vars, threshold = 3)
+outliers
 
-cat("Outliers (±3 SD):\n")
-found <- FALSE
-for (col in vars) {
-  flagged <- which(out_mask[[col]])
-  if (length(flagged) > 0) {
-    found <- TRUE
-    cat(sprintf("  %s: rows %s\n", col, paste(flagged, collapse = ", ")))
-    for (idx in flagged) cat(sprintf("    row %d: %s = %s\n", idx, col, df[[col]][idx]))
-  }
-}
-if (!found) cat("  None detected.\n")
+# Want to see how it works? Printing a function shows its source code.
+# print(flag_outliers_z)
 
 # **Decision rule:** If clinically suspicious outliers exist, we run the
 # analysis with and without them as a sensitivity check and report both.
@@ -287,20 +276,19 @@ if (!found) cat("  None detected.\n")
 # very plausible in a patient dataset, therefore we will keep this
 # outlier.
 
-missing_mask <- apply(is.na(df[, vars]), 1, any)
-
 # Outliers: exclude only the implausible ones found in Section 1.5 - keep
 # the att_matr outlier, since it is a plausible (if low) clinical value
-implausible_cols <- c("age", "n400_amp", "p300_lat")
-outlier_mask <- apply(out_mask[, implausible_cols], 1, any)
+implausible <- outliers %>%
+  filter(variable %in% c("age", "n400_amp", "p300_lat")) %>%
+  pull(subject_id)
 
-exclude_mask <- missing_mask | outlier_mask
-cat(sprintf("Excluding %d participants:\n", sum(exclude_mask)))
-print(df[exclude_mask, c("subject_id", vars)], row.names = FALSE)
+# Participants to exclude: any missing value, or an implausible outlier
+excluded <- df %>%
+  filter(if_any(all_of(vars), is.na) | subject_id %in% implausible)
+excluded %>% select(subject_id, all_of(vars))
 
-df <- df[!exclude_mask, ]
-rownames(df) <- NULL
-cat(sprintf("\nRemaining: %d participants\n", nrow(df)))
+df <- df %>% anti_join(excluded, by = "subject_id")
+cli_alert_info("Excluded {nrow(excluded)} participants - {nrow(df)} remaining.")
 
 # ---
 # ## 2. Analysis
@@ -309,12 +297,20 @@ cat(sprintf("\nRemaining: %d participants\n", nrow(df)))
 #
 # We describe each variable by looking at its mean, standard deviation, and range of values
 
-table1 <- bind_rows(lapply(vars, function(col) {
-  v <- df[[col]][!is.na(df[[col]])]
-  data.frame(Variable = col, n = length(v),
-             Value = sprintf("%.2f ± %.2f", mean(v), sd(v)),
-             Range = sprintf("[%.2f, %.2f]", min(v), max(v)))
-}))
+num2 <- function(x) formatC(x, format = "f", digits = 2)  # 2 decimals, e.g. "65.30"
+
+table1 <- df %>%
+  select(all_of(vars)) %>%
+  pivot_longer(everything(), names_to = "Variable") %>%
+  drop_na(value) %>%
+  mutate(Variable = factor(Variable, levels = vars)) %>%
+  group_by(Variable) %>%
+  summarise(
+    n     = n(),
+    Value = str_c(num2(mean(value)), " ± ", num2(sd(value))),
+    Range = str_c("[", num2(min(value)), ", ", num2(max(value)), "]")
+  ) %>%
+  mutate(Variable = as.character(Variable))
 table1
 
 # ### 2.2 Bivariate correlations (ERP × NPSY)
@@ -323,42 +319,14 @@ table1
 # neuropsychological outcomes. The heatmap shows r values with significance
 # stars (* p<0.05, ** p<0.01, *** p<0.001).
 
-n_vars <- length(vars)
-valid <- df[vars] %>% drop_na()
+cor_tbl <- cor_pairs(df, vars)   # one row per pair: var1, var2, r, p
 
-corr_mat <- matrix(1, n_vars, n_vars, dimnames = list(vars, vars))
-p_mat    <- matrix(1, n_vars, n_vars, dimnames = list(vars, vars))
-for (i in 1:n_vars) {
-  for (j in 1:n_vars) {
-    if (i == j) next
-    ct <- cor.test(valid[[vars[i]]], valid[[vars[j]]])
-    corr_mat[i, j] <- unname(ct$estimate)
-    p_mat[i, j] <- ct$p.value
-  }
-}
+fig_corr <- plot_cor_heatmap(cor_tbl, vars)
+fig_corr
 
-# long format, lower triangle + diagonal only
-heat_rows <- list()
-for (i in 1:n_vars) {
-  for (j in 1:n_vars) {
-    if (j > i) next
-    star <- if (p_mat[i, j] < 0.001) "***" else if (p_mat[i, j] < 0.01) "**" else if (p_mat[i, j] < 0.05) "*" else ""
-    heat_rows[[length(heat_rows) + 1]] <- data.frame(
-      Var1 = vars[i], Var2 = vars[j], r = corr_mat[i, j],
-      label = sprintf("%.3f\n%s", corr_mat[i, j], star))
-  }
-}
-heat_df <- bind_rows(heat_rows) %>%
-  mutate(Var1 = factor(Var1, levels = vars), Var2 = factor(Var2, levels = rev(vars)))
-
-fig_corr <- ggplot(heat_df, aes(Var1, Var2, fill = r)) +
-  geom_tile(color = "white") +
-  geom_text(aes(label = label), size = 2.6, lineheight = 0.85) +
-  scale_fill_gradient2(low = "#2166ac", mid = "white", high = "#b2182b", midpoint = 0, limits = c(-1, 1)) +
-  coord_fixed() +
-  labs(title = "Pearson correlations  (* p<0.05, ** p<0.01, *** p<0.001)", x = NULL, y = NULL) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-print(fig_corr)
+# Want to see how it works? Printing a function shows its source code.
+# print(cor_pairs)
+# print(plot_cor_heatmap)
 
 # > **What do we see in the plot?**
 # >
@@ -373,20 +341,12 @@ print(fig_corr)
 # Based on the literature, we focus on two key pairs and generate scatter plots
 # with regression lines and 95 % confidence bands.
 
-pairs_list <- list(c("p300_amp", "att_matr"), c("n400_lat", "apacs"))
+fig_scatter <- plot_scatter_lm(df, "p300_amp", "att_matr") +
+  plot_scatter_lm(df, "n400_lat", "apacs")
+fig_scatter
 
-make_scatter <- function(xvar, yvar) {
-  v <- df[c(xvar, yvar)] %>% drop_na()
-  ct <- cor.test(v[[xvar]], v[[yvar]])
-  ggplot(v, aes(.data[[xvar]], .data[[yvar]])) +
-    geom_point(alpha = 0.6, color = "steelblue") +
-    geom_smooth(method = "lm", color = "#00796B", fill = "#00796B", alpha = 0.15, formula = y ~ x) +
-    labs(title = sprintf("%s vs %s   r=%.3f, p=%.4f", xvar, yvar, ct$estimate, ct$p.value),
-         x = xvar, y = yvar)
-}
-
-fig_scatter <- wrap_plots(lapply(pairs_list, function(p) make_scatter(p[1], p[2])), ncol = 2)
-print(fig_scatter)
+# Want to see how it works? Printing a function shows its source code.
+# print(plot_scatter_lm)
 
 # > **What do we see in the plot?**
 # >
@@ -504,43 +464,20 @@ summary(mod_att_matr_pars)
 #   the first place, so there is nothing to exclude here.
 
 mod <- mod_att_matr_pars
-fitted_vals <- fitted(mod)
-resid_vals  <- residuals(mod, type = "response")
-n <- nobs(mod)
 
-p_resid <- ggplot(data.frame(fitted = fitted_vals, resid = resid_vals), aes(fitted, resid)) +
-  geom_point(alpha = 0.6, color = "steelblue") +
-  geom_hline(yintercept = 0, linetype = "dashed", color = "grey40") +
-  labs(title = "Residuals vs Fitted", x = "Fitted values", y = "Residuals")
+fig_diag <- plot_model_diagnostics(mod)
+fig_diag
 
-p_qq <- ggplot(data.frame(r = resid_vals), aes(sample = r)) +
-  stat_qq() + stat_qq_line(color = "firebrick") +
-  labs(title = "Q-Q plot (residuals)")
+vif_table <- car::vif(mod) %>% enframe(name = "Predictor", value = "VIF")
+vif_table
 
-cooks <- cooks.distance(mod)
-p_cooks <- ggplot(data.frame(i = seq_along(cooks), cooks = cooks), aes(i, cooks)) +
-  geom_segment(aes(xend = i, yend = 0), color = "steelblue") +
-  geom_point(color = "steelblue") +
-  geom_hline(yintercept = 4 / n, color = "firebrick", linetype = "dashed") +
-  labs(title = "Cook's Distance", x = "Participant (row index)", y = "Cook's distance",
-       subtitle = sprintf("4/n = %.3f", 4 / n))
+cooks <- augment(mod)$.cooksd
+cli_alert_info(
+  "Participants above the 4/n Cook's distance threshold: {sum(cooks > 4 / nobs(mod))} (max Cook's D = {round(max(cooks), 3)})"
+)
 
-vif_vals <- car::vif(mod)
-vif_table <- data.frame(Predictor = names(vif_vals), VIF = as.numeric(vif_vals))
-
-p_vif <- ggplot(vif_table, aes(VIF, reorder(Predictor, VIF))) +
-  geom_col(fill = "steelblue") +
-  geom_vline(xintercept = 5, color = "orange", linetype = "dashed") +
-  geom_vline(xintercept = 10, color = "firebrick", linetype = "dashed") +
-  labs(title = "Variance Inflation Factor", x = "VIF", y = NULL)
-
-fig_diag <- (p_resid + p_qq) / (p_cooks + p_vif)
-print(fig_diag)
-
-print(vif_table)
-n_influential <- sum(cooks > 4 / n)
-cat(sprintf("\nParticipants above the 4/n Cook's distance threshold: %d (max Cook's D = %.3f)\n",
-            n_influential, max(cooks)))
+# Want to see how it works? Printing a function shows its source code.
+# print(plot_model_diagnostics)
 
 # > **What do we see in the plot?**
 # >
@@ -584,20 +521,19 @@ cat(sprintf("\nParticipants above the 4/n Cook's distance threshold: %d (max Coo
 #
 # We save the figures produced earlier, one PNG per figure.
 
-figures_to_save <- list(
-  "A_missingness.png"                     = list(fig = fig_missing, w = 10, h = 3),
-  "B_distributions.png"                   = list(fig = fig_dist,    w = 20, h = 16),
-  "C_correlations.png"                    = list(fig = fig_corr,    w = 9,  h = 7),
-  "D_key_associations.png"                = list(fig = fig_scatter, w = 12, h = 5),
-  "E_diagnostics_attentive_matrices.png"  = list(fig = fig_diag,    w = 11, h = 9)
+figures <- tibble(
+  filename = c("A_missingness.png", "B_distributions.png", "C_correlations.png",
+               "D_key_associations.png", "E_diagnostics_attentive_matrices.png"),
+  plot     = list(fig_missing, fig_dist, fig_corr, fig_scatter, fig_diag),
+  width    = c(10, 20, 9, 12, 11),
+  height   = c(3, 16, 7, 5, 9)
 )
 
-for (filename in names(figures_to_save)) {
-  spec <- figures_to_save[[filename]]
+pwalk(figures, function(filename, plot, width, height) {
   path <- file.path(FIGS, filename)
-  ggsave(path, plot = spec$fig, width = spec$w, height = spec$h, dpi = 150, bg = "white")
-  cat(sprintf("Saved: %s\n", path))
-}
+  ggsave(path, plot, width = width, height = height, dpi = 150, bg = "white")
+  cli_alert_success("Saved {.file {path}}")
+})
 
 # ### 3.2 Tables
 #
@@ -616,69 +552,52 @@ for (filename in names(figures_to_save)) {
 # significance.
 
 # Table 2 - bivariate correlations, one row per unique pair of variables
-corr_rows <- list()
-for (i in 1:n_vars) {
-  for (j in 1:n_vars) {
-    if (j <= i) next
-    corr_rows[[length(corr_rows) + 1]] <- data.frame(
-      `Variable 1` = vars[i], `Variable 2` = vars[j],
-      r = corr_mat[i, j], `p-value` = p_mat[i, j],
-      `Significant (p<0.05)` = p_mat[i, j] < 0.05,
-      check.names = FALSE)
-  }
-}
-table2_correlations <- bind_rows(corr_rows)
+table2_correlations <- cor_tbl %>%
+  transmute(
+    `Variable 1` = var1,
+    `Variable 2` = var2,
+    r,
+    `p-value` = p,
+    `Significant (p<0.05)` = p < 0.05
+  )
 head(table2_correlations)
 
 # Table 3 - regression coefficients for all three fitted models
-model_to_table <- function(model, outcome_label) {
-  co <- summary(model)$coefficients
-  ci <- confint.default(model)   # Wald CI
-  data.frame(
-    Outcome = outcome_label,
-    Predictor = rownames(co),
-    Estimate = co[, "Estimate"],
-    `Std. Error` = co[, "Std. Error"],
-    `p-value` = co[, 4],
-    CI_lower = ci[, 1],
-    CI_upper = ci[, 2],
-    `Significant (p<0.05)` = co[, 4] < 0.05,
-    row.names = NULL, check.names = FALSE
-  )
-}
-
 table3_regression <- bind_rows(
-  model_to_table(mod_apacs, "APACS (theory-driven)"),
-  model_to_table(mod_att_matr_full, "Attentive Matrices (kitchen-sink)"),
-  model_to_table(mod_att_matr_pars, "Attentive Matrices (parsimonious)")
+  tidy_glm_wald(mod_apacs, "APACS (theory-driven)"),
+  tidy_glm_wald(mod_att_matr_full, "Attentive Matrices (kitchen-sink)"),
+  tidy_glm_wald(mod_att_matr_pars, "Attentive Matrices (parsimonious)")
 )
 table3_regression
+
+# Want to see how it works? Printing a function shows its source code.
+# print(tidy_glm_wald)
 
 # Table 4 - VIF table computed in Section 2.4 (Attentive Matrices, parsimonious model)
 table4_vif <- vif_table
 table4_vif
 
-tables_to_save <- list(
+tables <- list(
   "table1_descriptives.csv" = table1,
   "table2_correlations.csv" = table2_correlations,
   "table3_regression.csv"   = table3_regression,
   "table4_vif.csv"          = table4_vif
 )
 
-for (filename in names(tables_to_save)) {
+iwalk(tables, function(table, filename) {
   path <- file.path(RESULTS, filename)
-  write.csv(tables_to_save[[filename]], path, row.names = FALSE)
-  cat(sprintf("Saved: %s\n", path))
-}
+  write_csv(table, path)
+  cli_alert_success("Saved {.file {path}}")
+})
 
-wb <- createWorkbook()
-addWorksheet(wb, "Descriptives"); writeData(wb, "Descriptives", table1)
-addWorksheet(wb, "Correlations"); writeData(wb, "Correlations", table2_correlations)
-addWorksheet(wb, "Regression");   writeData(wb, "Regression", table3_regression)
-addWorksheet(wb, "VIF");          writeData(wb, "VIF", table4_vif)
+# The same four tables in one Excel workbook, one sheet each
 xlsx_path <- file.path(RESULTS, "CaseStudy_1_results.xlsx")
-saveWorkbook(wb, xlsx_path, overwrite = TRUE)
-cat(sprintf("Saved: %s\n", xlsx_path))
+openxlsx::write.xlsx(
+  list(Descriptives = table1, Correlations = table2_correlations,
+       Regression = table3_regression, VIF = table4_vif),
+  xlsx_path, overwrite = TRUE
+)
+cli_alert_success("Saved {.file {xlsx_path}}")
 
 # ---
 # ## 4. Strengths and limitations of this approach (Section 4.2.3)
@@ -705,5 +624,6 @@ cat(sprintf("Saved: %s\n", xlsx_path))
 #
 # ---
 #
-# *Generated for the EEG-NPSY tutorial. All code is self-contained
-# for transparency and reproducibility.*
+# *Generated for the EEG-NPSY tutorial. The analysis uses standard R
+# packages plus a few helper functions in the `R/` folder next to this
+# notebook - all of it open for inspection.*

@@ -27,6 +27,26 @@ patients, using four scalar features and linear regression.
 
 </div>
 
+!!! info "How the code is built"
+    Like almost any real analysis, this case study combines **functions
+    from established packages** with **a few custom functions** of its own.
+    Nearly everything comes from standard packages: data handling,
+    correlations, regression models, diagnostics, plots and export. The
+    packages are pandas, SciPy and statsmodels in Python; the tidyverse,
+    broom, car and psych in R; and the Statistics and Machine Learning
+    Toolbox in Matlab. The custom code only covers what is specific to this
+    study:
+    
+    - checking values against our clinical ranges and flagging outliers
+    - a correlation heatmap with significance stars
+    - report-ready regression tables
+
+    In the R version these custom functions live in `r/case1/code/R/`, as
+    if they were a small package. Each is hidden by default in the notebook,
+    and a collapsed cell lets you print its source code. They were written
+    for this tutorial and are not extensively tested beyond the data used
+    here.
+
 ## Research question
 
 > Are the amplitude and latency of specific ERP components associated with

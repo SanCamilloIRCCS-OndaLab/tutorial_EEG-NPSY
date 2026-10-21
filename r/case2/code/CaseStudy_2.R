@@ -1,5 +1,6 @@
 # Generated from CaseStudy_2.ipynb - edit the notebook, not this file.
 # Same code as the notebook, as a plain script (no Jupyter required).
+# Run it from this folder, so the helper functions in R/ are found.
 
 # # Case Study 2 — Whole-scalp spectral analysis of resting-state EEG (R)
 #
@@ -55,24 +56,66 @@
 # > from the real montage by
 # > [`data/EEG/PSD/compute_montage_assets.ipynb`](../../../data/EEG/PSD/compute_montage_assets.ipynb).
 # > Everything downstream (the statistics, the cluster test, the topomap
-# > interpolation) is plain R, defined here.
+# > interpolation) is plain R.
+#
+# ## How this code is built
+#
+# Like almost any real analysis, this notebook combines two things:
+#
+# 1. **Functions from established packages** - the
+#    [tidyverse](https://www.tidyverse.org/) (`readr`, `dplyr`, `tidyr`,
+#    `purrr`, `stringr`, `ggplot2`) to read, reshape and plot the data,
+#    `broom` to turn models into tables, `Matrix`, `MASS` and `igraph` for
+#    the linear algebra and graph steps, `patchwork` to combine plots,
+#    `openxlsx` for Excel export and `cli` for readable messages.
+# 2. **A few custom functions** for what no package we use here covers: a
+#    reader for NumPy's `.npy` files, the cluster-based permutation test,
+#    and the topographic map. In Python, `numpy` reads `.npy` files and
+#    `mne` draws the topomaps (the cluster test is a short custom function
+#    there too); R has packages for parts of this as well (e.g.
+#    `reticulate`, `permuco`, `eegUtils`), but to keep the dependencies
+#    light we use small helpers instead. They live in the [`R/`](https://github.com/SanCamilloIRCCS-OndaLab/tutorial_EEG-NPSY/tree/main/r/case2/code/R) folder next to this notebook and
+#    are loaded in Setup, just as you would load a small package of your own
+#    - so the notebook itself reads as the analysis, step by step.
+#
+# The custom functions are hidden by default, but they are not a black box:
+# wherever one is first used, a collapsed cell lets you print its source code
+# (or simply open the file in `R/`).
+#
+# > ⚠️ **Caution** - the custom functions in `R/` (the `.npy` reader, the
+# > cluster-based permutation test and the topographic map) are minimal,
+# > didactic implementations, written only so this tutorial runs in R
+# > without extra dependencies. They are **not extensively tested**, and
+# > they are **not** a validated or published implementation of
+# > cluster-based permutation testing. For real analyses use established,
+# > peer-reviewed tools - MNE-Python, FieldTrip, or R packages such as
+# > `permuco` and `eegUtils`.
 
 # ## 0. Setup
 #
-# Import the libraries we will use throughout the analysis.
+# Load the packages we use throughout the analysis, then our own helper
+# functions from the `R/` folder.
 
 suppressPackageStartupMessages({
-  library(dplyr)
-  library(tidyr)
-  library(ggplot2)
+  library(tidyverse)  # readr, dplyr, tidyr, purrr, stringr, ggplot2, ...
+  library(broom)      # model results as tidy tibbles
   library(patchwork)  # combine ggplot panels into one figure
-  library(Matrix)     # sparse adjacency matrices (part of base R)
-  library(MASS)        # pseudo-inverse, MASS::ginv (part of base R)
-  library(igraph)       # connected components, for cluster-finding
-  library(openxlsx)      # Excel export
+  library(Matrix)     # sparse matrices, for channel/frequency adjacency (ships with R)
+  library(cli)        # readable status messages
 })
+# MASS (pseudo-inverse), igraph (connected components) and openxlsx (Excel
+# export) are only needed in one place each, so they are called as
+# pkg::fun() instead of being attached.
 
 theme_set(theme_minimal())
+
+# Fixed number of decimals, for plot titles and labels
+fmt <- function(x, digits = 1) formatC(x, format = "f", digits = digits)
+
+# Our own helper functions, one file per topic in the R/ folder next to this
+# notebook - loaded the way you would load a small package of your own
+list.files("R", pattern = "\\.R$", full.names = TRUE) %>%
+  walk(~ source(.x, keep.source = TRUE))  # keep.source: printing a helper keeps its comments
 
 # Define input/output folders
 
@@ -98,61 +141,31 @@ dir.create(RESULTS, recursive = TRUE, showWarnings = FALSE)
 # array, linked to the neuropsychological table by `subject_id`. Unlike
 # Case Study 1's CSV files, this is too large for a spreadsheet — it comes
 # as three companion files (the array, the channel names, the frequency
-# axis), saved by Python's `numpy.save`. R has no package in common use
-# for `.npy` files, so we read the (simple, documented) binary format
-# directly — about twenty lines, defined once below.
+# axis), saved by Python's `numpy.save`. To keep the dependencies light, we
+# read the (simple, documented) binary format with a small helper,
+# `read_npy()`, from our `R/` folder - the alternative would be calling
+# numpy itself from R, through the `reticulate` package.
 
-read_npy <- function(path) {
-  # Minimal reader for the subset of the .npy format we actually need:
-  # version 1.0/2.0 header, C-order (row-major), float32/float64 data.
-  con <- file(path, "rb")
-  on.exit(close(con))
-  magic <- readBin(con, "raw", n = 6)
-  stopifnot(rawToChar(magic[2:6]) == "NUMPY")
-  major <- readBin(con, "integer", n = 1, size = 1, signed = FALSE)
-  readBin(con, "integer", n = 1, size = 1, signed = FALSE)  # minor version, unused
-  header_len <- if (major == 1) {
-    readBin(con, "integer", n = 1, size = 2, signed = FALSE, endian = "little")
-  } else {
-    readBin(con, "integer", n = 1, size = 4, endian = "little")
-  }
-  header <- rawToChar(readBin(con, "raw", n = header_len))
-  stopifnot(!grepl("'fortran_order':\\s*True", header))  # we only handle C order
+psd_log     <- read_npy(file.path(PSD_DIR, "psd_log_matrix_full.npy"))  # [subjects x channels x freqs]
+freqs       <- read_npy(file.path(PSD_DIR, "freq_axis.npy"))
+ch_names    <- read_lines(file.path(PSD_DIR, "channel_names.txt"), skip_empty_rows = TRUE)
+subject_ids <- read_lines(file.path(PSD_DIR, "subject_ids_full.txt"), skip_empty_rows = TRUE)
 
-  shape_str <- regmatches(header, regexpr("(?<=\'shape\':\\s\\()[^)]*", header, perl = TRUE))
-  shape <- as.integer(trimws(strsplit(shape_str, ",")[[1]]))
-  shape <- shape[!is.na(shape)]
-  descr <- regmatches(header, regexpr("(?<=\'descr\':\\s\')[^\']+", header, perl = TRUE))
-  size <- if (grepl("f8", descr)) 8 else 4
-
-  vals <- readBin(con, "double", n = prod(shape), size = size, endian = "little")
-  if (length(shape) == 1) return(vals)
-  # row-major data into a column-major R array: fill with reversed
-  # dims, then transpose the axis order back
-  aperm(array(vals, dim = rev(shape)), rev(seq_along(shape)))
-}
-
-psd_log <- read_npy(file.path(PSD_DIR, "psd_log_matrix_full.npy"))
-freqs   <- read_npy(file.path(PSD_DIR, "freq_axis.npy"))
-ch_names <- readLines(file.path(PSD_DIR, "channel_names.txt"))
-ch_names <- ch_names[nzchar(ch_names)]
-subject_ids <- readLines(file.path(PSD_DIR, "subject_ids_full.txt"))
-subject_ids <- subject_ids[nzchar(subject_ids)]
-
-npsy <- read.csv(NPSY_CSV)
-erp  <- read.csv(ERP_CSV)
+npsy <- read_csv(NPSY_CSV, show_col_types = FALSE)
+erp  <- read_csv(ERP_CSV, show_col_types = FALSE)
 
 n_subj <- dim(psd_log)[1]; n_ch <- dim(psd_log)[2]; n_freq <- dim(psd_log)[3]
-cat(sprintf("PSD: %d subjects x %d channels x %d freq bins (%.1f-%.1f Hz)\n",
-            n_subj, n_ch, n_freq, min(freqs), max(freqs)))
-cat(sprintf("NPSY: %d x %d  columns: %s\n", nrow(npsy), ncol(npsy), paste(colnames(npsy), collapse = ", ")))
+cli_alert_info("PSD: {n_subj} subjects x {n_ch} channels x {n_freq} frequency bins ({fmt(min(freqs))}-{fmt(max(freqs))} Hz)")
+glimpse(npsy)
 
 # Strict alignment check: the PSD array and the NPSY table must refer to
 # the same participants, in the same order (Section 4.2.2 of the paper
 # flags this explicitly as a common failure point).
-stopifnot(nrow(npsy) == n_subj)
-stopifnot(all(npsy$subject_id == subject_ids))
-cat("Subject alignment OK.\n")
+stopifnot(nrow(npsy) == n_subj, all(npsy$subject_id == subject_ids))
+cli_alert_success("Subject alignment OK.")
+
+# Want to see how it works? Printing a function shows its source code.
+# print(read_npy)
 
 # ### 1.2 Missing data and outliers
 #
@@ -163,20 +176,20 @@ cat("Subject alignment OK.\n")
 
 subj_to_exclude <- c("sub-016", "sub-019", "sub-024", "sub-036", "sub-044")
 
-cat("Missing values in NPSY table:\n")
-print(colSums(is.na(npsy)))
+# Missing values per column of the neuropsychological table
+npsy %>% summarise(across(everything(), ~ sum(is.na(.x))))
 
-keep_mask <- !(npsy$subject_id %in% subj_to_exclude)
-npsy <- npsy[keep_mask, ]
-rownames(npsy) <- NULL
-erp <- erp[keep_mask, ]
-rownames(erp) <- NULL
-psd_log <- psd_log[keep_mask, , ]
-subject_ids <- subject_ids[keep_mask]
+# Tables are filtered by subject_id; the PSD array (same subject order, as
+# checked above) with a logical index
+keep <- !(subject_ids %in% subj_to_exclude)
+npsy <- npsy %>% filter(!subject_id %in% subj_to_exclude)
+erp  <- erp %>% filter(!subject_id %in% subj_to_exclude)
+psd_log <- psd_log[keep, , ]
+subject_ids <- subject_ids[keep]
 n_subj <- dim(psd_log)[1]
 
 stopifnot(all(npsy$subject_id == subject_ids))
-cat(sprintf("\nExcluded %d participants - %d remaining.\n", length(subj_to_exclude), n_subj))
+cli_alert_info("Excluded {length(subj_to_exclude)} participants - {n_subj} remaining.")
 
 # ### 1.3 Initial inspection
 #
@@ -184,36 +197,40 @@ cat(sprintf("\nExcluded %d participants - %d remaining.\n", length(subj_to_exclu
 # spectrum look like a real EEG spectrum (1/f-like decay, no obvious line
 # noise or flat channels)?
 
-grand_avg <- apply(psd_log, 3, mean)
-grand_sd  <- apply(apply(psd_log, c(1, 3), mean), 2, sd)
-
-bands <- data.frame(
-  lo = c(1, 4, 8, 13, 30), hi = c(4, 8, 13, 30, 40),
-  label = c("delta", "theta", "alpha", "beta", "gamma"),
-  color = c("#e3f2fd", "#fff3e0", "#e8f5e9", "#fce4ec", "#f3e5f5")
+bands <- tribble(
+  ~label,  ~lo, ~hi, ~color,
+  "delta",   1,   4, "#e3f2fd",
+  "theta",   4,   8, "#fff3e0",
+  "alpha",   8,  13, "#e8f5e9",
+  "beta",   13,  30, "#fce4ec",
+  "gamma",  30,  40, "#f3e5f5"
 )
-band_df <- data.frame(freq = freqs, avg = grand_avg, sd = grand_sd)
+
+spectrum <- tibble(
+  freq = freqs,
+  avg  = apply(psd_log, 3, mean),                    # grand average
+  sd   = apply(apply(psd_log, c(1, 3), mean), 2, sd)  # SD across participants
+)
 
 fig_grandavg <- ggplot() +
   geom_rect(data = bands, aes(xmin = lo, xmax = hi, ymin = -Inf, ymax = Inf, fill = label),
             alpha = 0.5) +
-  scale_fill_manual(values = setNames(bands$color, bands$label), guide = "none") +
-  geom_ribbon(data = band_df, aes(freq, ymin = avg - sd, ymax = avg + sd), alpha = 0.2, fill = "#1f77b4") +
-  geom_line(data = band_df, aes(freq, avg), color = "#1f77b4", linewidth = 1) +
-  geom_text(data = bands, aes(x = (lo + hi) / 2, y = max(band_df$avg + band_df$sd) * 0.97, label = label),
+  scale_fill_manual(values = set_names(bands$color, bands$label), guide = "none") +
+  geom_ribbon(data = spectrum, aes(freq, ymin = avg - sd, ymax = avg + sd), alpha = 0.2, fill = "#1f77b4") +
+  geom_line(data = spectrum, aes(freq, avg), color = "#1f77b4", linewidth = 1) +
+  geom_text(data = bands, aes(x = (lo + hi) / 2, y = max(spectrum$avg + spectrum$sd) * 0.97, label = label),
             vjust = 1, size = 3.2) +
   labs(x = "Frequency (Hz)", y = "Log power (a.u.)",
-       title = sprintf("Grand-average log-power spectrum (n=%d, mean ± SD across participants)", n_subj)) +
-  theme_minimal()
-print(fig_grandavg)
+       title = str_glue("Grand-average log-power spectrum (n={n_subj}, mean ± SD across participants)"))
+fig_grandavg
 
-# flag participants whose spectrum looks implausible (flat, or extreme overall level)
-subj_mean <- apply(psd_log, 1, mean)
-subj_flat <- apply(psd_log, 1, sd)
-cat(sprintf("Per-participant overall level: mean=%.2f, range=[%.2f, %.2f]\n",
-            mean(subj_mean), min(subj_mean), max(subj_mean)))
-flagged <- which(abs(subj_mean - mean(subj_mean)) > 3 * sd(subj_mean) | subj_flat < 1e-6)
-cat(sprintf("Flagged participants (implausible spectrum): %d\n", length(flagged)))
+# Flag participants whose spectrum looks implausible (flat, or extreme overall level)
+tibble(subject_id = subject_ids,
+       level  = apply(psd_log, 1, mean),
+       spread = apply(psd_log, 1, sd)) %>%
+  mutate(flagged = abs(level - mean(level)) > 3 * sd(level) | spread < 1e-6) %>%
+  summarise(mean_level = mean(level), min_level = min(level), max_level = max(level),
+            n_flagged = sum(flagged))
 
 # > **What do we see in the plot?**
 # >
@@ -232,23 +249,22 @@ cat(sprintf("Flagged participants (implausible spectrum): %d\n", length(flagged)
 # points, checking each one individually is neither possible nor useful;
 # instead we check a handful of representative points.
 
-ci_mid <- n_ch %/% 2
+ci_mid   <- n_ch %/% 2
 fi_delta <- which.min(abs(freqs - 2))
 fi_alpha <- which.min(abs(freqs - 10))
 
-hist_df <- rbind(
-  data.frame(value = psd_log[, ci_mid, fi_delta],
-             label = sprintf("Cz-like (central)\n%s @ %.1f Hz", ch_names[ci_mid], freqs[fi_delta])),
-  data.frame(value = psd_log[, ci_mid, fi_alpha],
-             label = sprintf("Cz-like (central)\n%s @ %.1f Hz", ch_names[ci_mid], freqs[fi_alpha]))
+point_label <- function(fi) str_c("Cz-like (central)\n", ch_names[ci_mid], " @ ", fmt(freqs[fi]), " Hz")
+
+spot_check <- bind_rows(
+  tibble(value = psd_log[, ci_mid, fi_delta], label = point_label(fi_delta)),
+  tibble(value = psd_log[, ci_mid, fi_alpha], label = point_label(fi_alpha))
 )
 
-fig_dist <- ggplot(hist_df, aes(value)) +
+fig_dist <- ggplot(spot_check, aes(value)) +
   geom_histogram(bins = 15, fill = "#1f77b4", alpha = 0.8, color = "white") +
   facet_wrap(~label, scales = "free") +
-  labs(x = "Log power", y = "Count") +
-  theme_minimal()
-print(fig_dist)
+  labs(x = "Log power", y = "Count")
+fig_dist
 
 # > **What do we see in the plot?**
 # >
@@ -269,27 +285,32 @@ print(fig_dist)
 
 # ### 1.6 Final check
 
-cat(sprintf("Final N: %d\n", n_subj))
-cat(sprintf("EEG array: %d x %d x %d\n", n_subj, n_ch, n_freq))
-cat("Covariates: age, criq\n")
-cat(sprintf("Outcome: moca (mean=%.2f, sd=%.2f)\n", mean(npsy$moca), sd(npsy$moca)))
+cli_bullets(c(
+  "*" = "Final N: {n_subj}",
+  "*" = "EEG array: {n_subj} x {n_ch} x {n_freq}",
+  "*" = "Covariates: age, criq",
+  "*" = "Outcome: moca (mean = {fmt(mean(npsy$moca), 2)}, SD = {fmt(sd(npsy$moca), 2)})"
+))
 
 # ---
 # ## 2. Analysis
 
 # ### 2.1 Descriptive statistics
 
-table1_rows <- list()
-for (col in c("age", "sex", "criq", "moca")) {
-  v <- npsy[[col]][!is.na(npsy[[col]])]
-  table1_rows[[col]] <- data.frame(
-    Variable = col, n = length(v),
-    Value = sprintf("%.2f \u00b1 %.2f", mean(v), sd(v)),
-    Range = sprintf("[%.2f, %.2f]", min(v), max(v))
-  )
-}
-table1 <- do.call(rbind, table1_rows)
-rownames(table1) <- NULL
+desc_vars <- c("age", "sex", "criq", "moca")
+
+table1 <- npsy %>%
+  select(all_of(desc_vars)) %>%
+  pivot_longer(everything(), names_to = "Variable") %>%
+  drop_na(value) %>%
+  mutate(Variable = factor(Variable, levels = desc_vars)) %>%
+  group_by(Variable) %>%
+  summarise(
+    n     = n(),
+    Value = str_c(fmt(mean(value), 2), " ± ", fmt(sd(value), 2)),
+    Range = str_c("[", fmt(min(value), 2), ", ", fmt(max(value), 2), "]")
+  ) %>%
+  mutate(Variable = as.character(Variable))
 table1
 
 # ### 2.2 Baseline — a Case-Study-1-style model
@@ -303,7 +324,7 @@ table1
 # concrete: a model that commits in advance to one feature can only find
 # an association if it happens to live there.
 
-df_baseline <- merge(npsy, erp, by = "subject_id")
+df_baseline <- inner_join(npsy, erp, by = "subject_id")
 mod_baseline <- glm(moca ~ p300_amp + age + criq, data = df_baseline, family = gaussian())
 summary(mod_baseline)
 
@@ -314,44 +335,25 @@ summary(mod_baseline)
 # and MoCA, controlling for age and CRIq, and convert it to a t-statistic.
 # This produces one map of 204 x 159 test statistics.
 
-partial_corr_tmap <- function(log_power, y, age, criq, n_ch_, n_freq_) {
-  # partial-correlation t-map of log_power vs y, controlling age & criq.
-  # Returns a flat vector, index = (ch-1)*n_freq_ + freq (1-indexed),
-  # i.e. channel-major, matching combine_adjacency() below.
-  n <- length(y)
-  Z <- cbind(1, age, criq)
-  Z_pinv <- ginv(Z)
-  resid_y <- y - Z %*% (Z_pinv %*% y)
-  Y <- matrix(aperm(log_power, c(1, 3, 2)), nrow = n)
-  resid_power <- Y - Z %*% (Z_pinv %*% Y)
-  num <- as.vector(t(resid_y) %*% resid_power)
-  den <- sqrt(sum(resid_y^2)) * sqrt(colSums(resid_power^2))
-  r <- pmax(pmin(num / den, 0.999999), -0.999999)
-  df <- n - 4   # n - intercept - age - criq - y
-  r * sqrt(df / (1 - r^2))
-}
-
-flat_to_map <- function(flat, n_ch_, n_freq_) t(matrix(flat, nrow = n_freq_, ncol = n_ch_))
-
-age  <- npsy$age
-criq <- npsy$criq
+covariates <- npsy %>% select(age, criq)
 moca <- npsy$moca
 
-t_map <- flat_to_map(partial_corr_tmap(psd_log, moca, age, criq, n_ch, n_freq), n_ch, n_freq)
+t_map <- flat_to_map(partial_corr_tmap(psd_log, moca, covariates), n_ch, n_freq)  # [channels x freqs]
 
-tmap_df <- expand.grid(freq_i = seq_len(n_freq), ch_i = seq_len(n_ch))
-tmap_df$freq <- freqs[tmap_df$freq_i]
-tmap_df$t <- t_map[cbind(tmap_df$ch_i, tmap_df$freq_i)]
+tmap_df <- expand_grid(ch_i = seq_len(n_ch), freq_i = seq_len(n_freq)) %>%
+  mutate(freq = freqs[freq_i], t = t_map[cbind(ch_i, freq_i)])
 
 fig_tmap <- ggplot(tmap_df, aes(freq, ch_i, fill = t)) +
   geom_raster() +
   scale_fill_gradient2(low = "#2166ac", mid = "white", high = "#b2182b", midpoint = 0,
-                        limits = c(-4, 4), oob = scales::squish, name = "t-value") +
+                       limits = c(-4, 4), oob = scales::squish, name = "t-value") +
   scale_y_reverse() +
   labs(x = "Frequency (Hz)", y = "Channel (arbitrary order)",
-       title = "Uncorrected partial-correlation t-map (log-power vs MoCA | age, CRIq)") +
-  theme_minimal()
-print(fig_tmap)
+       title = "Uncorrected partial-correlation t-map (log-power vs MoCA | age, CRIq)")
+fig_tmap
+
+# Want to see how it works? Printing a function shows its source code.
+# print(partial_corr_tmap)
 
 # > **What do we see in the plot?**
 # >
@@ -397,108 +399,64 @@ print(fig_tmap)
 #   Case Study 1 warned about (Section 2.3 there): the secondary result is
 #   only informative because it was planned, not because we went looking
 #   for whichever restriction happened to be significant.
+#
+# > ⚠️ **Caution** - the cluster-based permutation functions used here
+# > (`cluster_permutation_test()` and its helpers, in
+# > [`R/cluster_permutation.R`](https://github.com/SanCamilloIRCCS-OndaLab/tutorial_EEG-NPSY/blob/main/r/case2/code/R/cluster_permutation.R)) are a minimal,
+# > didactic implementation, written only so this tutorial runs in R without
+# > extra dependencies. They are **not extensively tested** and are **not** a
+# > validated or published implementation of the method. For real analyses
+# > use established, peer-reviewed tools - MNE-Python (`mne.stats`),
+# > FieldTrip, or the R package `permuco`.
 
-find_clusters <- function(t_flat, t_thresh, adjacency) {
-  clusters <- list()
-  for (sign in c(1, -1)) {
-    supra <- which((t_flat * sign) > t_thresh)
-    if (length(supra) == 0) next
-    # build the suprathreshold subgraph straight from the sparse
-    # adjacency's own (i, j) triplets, without ever densifying it
-    sub_adj <- as(adjacency[supra, supra], "TsparseMatrix")
-    el <- cbind(sub_adj@i + 1L, sub_adj@j + 1L)
-    el <- el[el[, 1] < el[, 2], , drop = FALSE]
-    g <- make_empty_graph(n = length(supra), directed = FALSE)
-    if (nrow(el) > 0) g <- add_edges(g, as.vector(t(el)))
-    comp <- components(g)
-    for (k in seq_len(comp$no)) {
-      members <- supra[comp$membership == k]
-      clusters[[length(clusters) + 1]] <- list(members = members, mass = sum(t_flat[members]))
-    }
-  }
-  clusters
-}
-
-cluster_permutation_test <- function(log_power, y, age, criq, adjacency, n_ch_, n_freq_,
-                                      t_thresh = 2.028, n_perm = 2000, seed = 1) {
-  set.seed(seed)
-  t_obs <- partial_corr_tmap(log_power, y, age, criq, n_ch_, n_freq_)
-  obs_clusters <- find_clusters(t_obs, t_thresh, adjacency)
-  obs_clusters <- obs_clusters[order(-abs(sapply(obs_clusters, function(c) c$mass)))]
-  n <- length(y)
-  null_max <- numeric(n_perm)
-  for (i in seq_len(n_perm)) {
-    shuffled <- sample(n)
-    t_perm <- partial_corr_tmap(log_power, y[shuffled], age, criq, n_ch_, n_freq_)
-    cl <- find_clusters(t_perm, t_thresh, adjacency)
-    null_max[i] <- if (length(cl) == 0) 0 else max(abs(sapply(cl, function(c) c$mass)))
-  }
-  results <- list()
-  top <- obs_clusters[seq_len(min(5, length(obs_clusters)))]
-  for (c in top) {
-    p <- mean(null_max >= abs(c$mass))
-    results[[length(results) + 1]] <- list(members = c$members, mass = c$mass, p_cluster = p)
-  }
-  list(clusters = results, t_obs = flat_to_map(t_obs, n_ch_, n_freq_))
-}
-
-# spatial adjacency + channel 3D positions, from the pre-exported montage assets
-ch_pos_3d <- read.csv(file.path(PSD_DIR, "montage_ch_pos_3d.csv"))
+# Channel positions and neighbouring pairs, pre-exported from the real montage
+ch_pos_3d <- read_csv(file.path(PSD_DIR, "montage_ch_pos_3d.csv"), show_col_types = FALSE)
 stopifnot(all(ch_pos_3d$channel == ch_names))
-xs <- ch_pos_3d$x   # +x = right (head frame)
+edges <- read_csv(file.path(PSD_DIR, "montage_adjacency_edges.csv"), show_col_types = FALSE)
+
+# How far right each channel sits: ~0 = far left, ~1 = far right (+x = right, head frame)
+xs <- ch_pos_3d$x
 w_right <- 0.5 * (1 + tanh(xs / (max(abs(xs)) / 2)))
 delta_theta <- freqs >= 1 & freqs <= 8
 
-edges <- read.csv(file.path(PSD_DIR, "montage_adjacency_edges.csv"))
-ch_index <- setNames(seq_along(ch_names), ch_names)
-i1 <- ch_index[edges$ch1]; i2 <- ch_index[edges$ch2]
-spatial_adjacency <- sparseMatrix(i = c(i1, i2), j = c(i2, i1), x = 1, dims = c(n_ch, n_ch))
-
-freq_chain_adjacency <- function(nf) {
-  sparseMatrix(i = c(1:(nf - 1), 2:nf), j = c(2:nf, 1:(nf - 1)), x = 1, dims = c(nf, nf))
-}
-
-# Cartesian-product adjacency over the (channel x freq) grid: two points
-# are neighbours iff (same freq, adjacent channels) or (same channel,
-# adjacent freq bins) - the R equivalent of mne.stats.combine_adjacency().
-combine_adjacency <- function(spatial_adj, n_freq_) {
-  nch_ <- nrow(spatial_adj)
-  kronecker(spatial_adj, Diagonal(n_freq_)) + kronecker(Diagonal(nch_), freq_chain_adjacency(n_freq_))
-}
+spatial_adjacency <- adjacency_from_edges(edges, ch_names)
 
 T_THRESH <- 2.028   # ~two-tailed p<0.05, df = n-4 = 36
 N_PERM <- 2000
 
+# Want to see how it works? Printing a function shows its source code.
+# print(adjacency_from_edges)
+
 combined_adjacency <- combine_adjacency(spatial_adjacency, n_freq)
-primary <- cluster_permutation_test(psd_log, moca, age, criq, combined_adjacency, n_ch, n_freq,
-                                     t_thresh = T_THRESH, n_perm = N_PERM, seed = 1)
+primary <- cluster_permutation_test(psd_log, moca, covariates, combined_adjacency,
+                                    t_thresh = T_THRESH, n_perm = N_PERM, seed = 1)
 primary_clusters <- primary$clusters
 t_obs_primary <- primary$t_obs
 
-cat("Primary (whole spectrum, no a priori restriction):\n")
-for (c in primary_clusters[seq_len(min(3, length(primary_clusters)))]) {
-  idx <- arrayInd(c$members, .dim = c(n_freq, n_ch))
-  fi <- idx[, 1]; ci <- idx[, 2]
-  cat(sprintf("  mass=%8.1f  size=%5d  freq=[%4.1f,%4.1f] Hz  mean(w_right)=%.2f  p_cluster=%.3f\n",
-              c$mass, length(c$members), min(freqs[fi]), max(freqs[fi]), mean(w_right[ci]), c$p_cluster))
-}
+# Primary (whole spectrum, no a priori restriction): the three largest clusters
+clusters_to_table(primary_clusters, freqs, w_right, seq_len(n_ch), "Primary (whole spectrum)") %>%
+  head(3)
+
+# Want to see how it works? Printing a function shows its source code.
+# print(combine_adjacency)
+# print(cluster_permutation_test)
+# print(find_clusters)
+# print(clusters_to_table)
 
 right_idx <- which(w_right > 0.5)
-freq_idx <- which(delta_theta)
-roi_spatial_adjacency <- spatial_adjacency[right_idx, right_idx]
+freq_idx  <- which(delta_theta)
 n_ch_roi <- length(right_idx); n_freq_roi <- length(freq_idx)
+roi_spatial_adjacency <- spatial_adjacency[right_idx, right_idx]
 roi_adjacency <- combine_adjacency(roi_spatial_adjacency, n_freq_roi)
-psd_log_roi <- psd_log[, right_idx, freq_idx]
 
-secondary <- cluster_permutation_test(psd_log_roi, moca, age, criq, roi_adjacency, n_ch_roi, n_freq_roi,
-                                       t_thresh = T_THRESH, n_perm = N_PERM, seed = 1)
+secondary <- cluster_permutation_test(psd_log[, right_idx, freq_idx], moca, covariates, roi_adjacency,
+                                      t_thresh = T_THRESH, n_perm = N_PERM, seed = 1)
 secondary_clusters <- secondary$clusters
-t_obs_roi <- secondary$t_obs
 
-cat("Secondary / confirmatory (right hemisphere x 1-8 Hz, pre-registered ROI):\n")
-for (c in secondary_clusters[seq_len(min(3, length(secondary_clusters)))]) {
-  cat(sprintf("  mass=%8.1f  size=%5d  p_cluster=%.3f\n", c$mass, length(c$members), c$p_cluster))
-}
+# Secondary / confirmatory (right hemisphere x 1-8 Hz, pre-registered ROI)
+clusters_to_table(secondary_clusters, freqs[freq_idx], w_right, right_idx,
+                  "Secondary (right hemisphere x 1-8 Hz)") %>%
+  head(3)
 
 # **Reading the result honestly**: the primary, whole-spectrum test is
 # not expected to survive correction at n=40 — this mirrors the paper's own
@@ -518,68 +476,40 @@ for (c in secondary_clusters[seq_len(min(3, length(secondary_clusters)))]) {
 # `mne.viz.plot_topomap` uses for this montage, pre-exported (so this
 # never has to invent its own projection); the colour surface
 # itself is a simple, local loess smoother over the real channel
-# values — R has no package equivalent to MNE's topomap interpolation, so
-# this is defined directly, once, below.
+# values. Rather than adding a full EEG package for a single plot, we use a
+# small helper, `topomap_plot()`, from our `R/` folder (the `eegUtils`
+# package offers a full-featured alternative).
 
-ch_pos_2d <- read.csv(file.path(PSD_DIR, "montage_ch_pos_2d.csv"))
-stopifnot(all(ch_pos_2d$channel == ch_names))
-outline <- read.csv(file.path(PSD_DIR, "montage_outline.csv"))
-clip_radius <- outline$x[outline$part == "clip_radius"][1]
-outline_parts <- c("head", "nose", "ear_left", "ear_right")
-
-topomap_plot <- function(values, mask = NULL, title = "", vlim = NULL, grid_n = 100) {
-  grid <- expand.grid(x2d = seq(-clip_radius, clip_radius, length.out = grid_n),
-                       y2d = seq(-clip_radius, clip_radius, length.out = grid_n))
-  fit <- loess(value ~ x2d * y2d,
-               data = data.frame(x2d = ch_pos_2d$x2d, y2d = ch_pos_2d$y2d, value = values),
-               degree = 2, span = 0.35, control = loess.control(surface = "direct"))
-  grid$pred <- as.vector(predict(fit, newdata = grid))
-  grid$r <- sqrt(grid$x2d^2 + grid$y2d^2)
-  grid$pred[grid$r > clip_radius] <- NA
-
-  if (is.null(vlim)) {
-    lim <- max(abs(values), na.rm = TRUE)
-    vlim <- c(-lim, lim)
-  }
-
-  p <- ggplot() +
-    geom_raster(data = grid, aes(x2d, y2d, fill = pred)) +
-    scale_fill_gradient2(low = "#2166ac", mid = "white", high = "#b2182b", midpoint = 0,
-                         limits = vlim, oob = scales::squish, na.value = NA, name = "t-value") +
-    geom_path(data = subset(outline, part %in% outline_parts), aes(x, y, group = part),
-              color = "black", linewidth = 0.4) +
-    coord_fixed() +
-    theme_void() +
-    ggtitle(title)
-
-  if (!is.null(mask) && any(mask)) {
-    p <- p + geom_point(data = ch_pos_2d[mask, ], aes(x2d, y2d), shape = 16, size = 1.2, color = "black")
-  }
-  p
-}
+outline <- read_csv(file.path(PSD_DIR, "montage_outline.csv"), show_col_types = FALSE)
+montage <- list(
+  pos_2d      = read_csv(file.path(PSD_DIR, "montage_ch_pos_2d.csv"), show_col_types = FALSE),
+  outline     = outline,
+  clip_radius = outline %>% filter(part == "clip_radius") %>% pull(x) %>% first()
+)
+stopifnot(all(montage$pos_2d$channel == ch_names))
 
 best <- secondary_clusters[[1]]
-members <- best$members
-idx <- arrayInd(members, .dim = c(n_freq_roi, n_ch_roi))
+idx <- arrayInd(best$members, .dim = c(n_freq_roi, n_ch_roi))
 fi_cluster <- idx[, 1]; ci_cluster <- idx[, 2]
-cluster_ch_local <- unique(ci_cluster)
-cluster_ch_global <- right_idx[cluster_ch_local]   # map back to the full 204-channel indexing
+cluster_ch_global <- right_idx[unique(ci_cluster)]   # map back to the full 204-channel indexing
 cluster_freq_range <- range(freqs[freq_idx][fi_cluster])
 
 # Average t-value per channel over the cluster's frequency range, using the
 # PRIMARY (whole-head, all real channels) map - so both hemispheres show
 # real data; only the significant channels (right hemisphere) are marked.
-freq_mask_cluster <- freqs >= cluster_freq_range[1] & freqs <= cluster_freq_range[2]
+freq_mask_cluster <- between(freqs, cluster_freq_range[1], cluster_freq_range[2])
 t_avg_full <- rowMeans(t_obs_primary[, freq_mask_cluster, drop = FALSE])
 
-mask <- rep(FALSE, n_ch)
-mask[cluster_ch_global] <- TRUE
-
 fig_topo <- topomap_plot(
-  t_avg_full, mask = mask,
-  title = sprintf("t-value, %.1f-%.1f Hz\n(marked channels = significant right-hemisphere cluster)",
-                   cluster_freq_range[1], cluster_freq_range[2]))
-print(fig_topo)
+  t_avg_full, montage,
+  mask = seq_len(n_ch) %in% cluster_ch_global,
+  title = str_glue("t-value, {fmt(cluster_freq_range[1])}-{fmt(cluster_freq_range[2])} Hz\n",
+                   "(marked channels = significant right-hemisphere cluster)")
+)
+fig_topo
+
+# Want to see how it works? Printing a function shows its source code.
+# print(topomap_plot)
 
 # > **What do we see in the plot?**
 # >
@@ -598,22 +528,22 @@ print(fig_topo)
 # cluster's channels for each group.
 
 median_moca <- median(moca)
-low_group <- moca <= median_moca
-high_group <- !low_group
 
-# average over the cluster's channels, across the FULL spectrum (not just
-# the ROI's 1-8 Hz subset) - so the plot shows what happens outside the
-# tested range too
-psd_cluster_ch <- apply(psd_log[, cluster_ch_global, , drop = FALSE], c(1, 3), mean)
+# Spectrum averaged over the cluster's channels, per participant, across the
+# FULL spectrum (not just the ROI's 1-8 Hz subset) - so the plot shows what
+# happens outside the tested range too
+psd_cluster_ch <- apply(psd_log[, cluster_ch_global, , drop = FALSE], c(1, 3), mean)  # [subjects x freqs]
 
-group_df <- rbind(
-  data.frame(freq = freqs, mean = colMeans(psd_cluster_ch[low_group, , drop = FALSE]),
-             sem = apply(psd_cluster_ch[low_group, , drop = FALSE], 2, sd) / sqrt(sum(low_group)),
-             label = sprintf("MoCA \u2264 %.1f", median_moca)),
-  data.frame(freq = freqs, mean = colMeans(psd_cluster_ch[high_group, , drop = FALSE]),
-             sem = apply(psd_cluster_ch[high_group, , drop = FALSE], 2, sd) / sqrt(sum(high_group)),
-             label = sprintf("MoCA > %.1f", median_moca))
-)
+group_df <- tibble(
+  subject = rep(seq_len(n_subj), times = n_freq),
+  freq    = rep(freqs, each = n_subj),
+  power   = as.vector(psd_cluster_ch)
+) %>%
+  mutate(label = if_else(moca[subject] <= median_moca,
+                         str_c("MoCA \u2264 ", fmt(median_moca)),
+                         str_c("MoCA > ", fmt(median_moca)))) %>%
+  group_by(label, freq) %>%
+  summarise(mean = mean(power), sem = sd(power) / sqrt(n()), .groups = "drop")
 
 fig_bygroup <- ggplot(group_df, aes(freq, mean, color = label, fill = label)) +
   annotate("rect", xmin = cluster_freq_range[1], xmax = cluster_freq_range[2], ymin = -Inf, ymax = Inf,
@@ -623,9 +553,8 @@ fig_bygroup <- ggplot(group_df, aes(freq, mean, color = label, fill = label)) +
   scale_color_manual(values = c("#d62728", "#1f77b4"), name = NULL) +
   scale_fill_manual(values = c("#d62728", "#1f77b4"), guide = "none") +
   labs(x = "Frequency (Hz)", y = "Log power",
-       title = "Spectrum at the cluster's channels, by MoCA level (median split, illustrative)") +
-  theme_minimal()
-print(fig_bygroup)
+       title = "Spectrum at the cluster's channels, by MoCA level (median split, illustrative)")
+fig_bygroup
 
 # > **What do we see in the plot?**
 # >
@@ -654,69 +583,58 @@ print(fig_bygroup)
 # outcomes, applied here to multiple frequency bands instead.
 
 CANONICAL_BANDS <- list(delta = c(1, 4), theta = c(4, 8), alpha = c(8, 13),
-                         beta = c(13, 30), gamma = c(30, 40))
+                        beta = c(13, 30), gamma = c(30, 40))
 
-band_results <- list()
-for (band_name in names(CANONICAL_BANDS)) {
-  lo <- CANONICAL_BANDS[[band_name]][1]; hi <- CANONICAL_BANDS[[band_name]][2]
-  band_freq_idx <- which(freqs >= lo & freqs < hi)
-  n_freq_band <- length(band_freq_idx)
-  band_adjacency <- combine_adjacency(roi_spatial_adjacency, n_freq_band)
-  psd_log_band <- psd_log[, right_idx, band_freq_idx]
-
-  res <- cluster_permutation_test(psd_log_band, moca, age, criq, band_adjacency, n_ch_roi, n_freq_band,
-                                   t_thresh = T_THRESH, n_perm = N_PERM, seed = 1)
-
+band_results <- imap(CANONICAL_BANDS, function(limits, band) {
+  band_freq_idx <- which(freqs >= limits[1] & freqs < limits[2])
+  band_adjacency <- combine_adjacency(roi_spatial_adjacency, length(band_freq_idx))
+  res <- cluster_permutation_test(psd_log[, right_idx, band_freq_idx], moca, covariates, band_adjacency,
+                                  t_thresh = T_THRESH, n_perm = N_PERM, seed = 1)
+  # the largest cluster (or an empty one, if nothing crossed the threshold)
   top <- if (length(res$clusters) > 0) res$clusters[[1]] else list(mass = 0, members = integer(0), p_cluster = 1)
-  p_bonferroni <- min(top$p_cluster * length(CANONICAL_BANDS), 1)
-  band_results[[band_name]] <- list(freq_range = c(lo, hi), clusters = res$clusters, t_obs = res$t_obs,
-                                     freq_idx = band_freq_idx, p_bonferroni = p_bonferroni)
+  list(freq_range = limits, freq_idx = band_freq_idx, top = top,
+       p_bonferroni = min(top$p_cluster * length(CANONICAL_BANDS), 1))
+})
 
-  cat(sprintf("%-6s (%2d-%2d Hz): mass=%8.1f  size=%5d  p_raw=%.3f  p_bonferroni=%.3f\n",
-              band_name, lo, hi, top$mass, length(top$members), top$p_cluster, p_bonferroni))
-}
+table4_bands <- band_results %>%
+  imap(function(res, band) {
+    tibble(
+      Band                   = band,
+      `Freq min (Hz)`        = res$freq_range[1],
+      `Freq max (Hz)`        = res$freq_range[2],
+      `Cluster mass`         = res$top$mass,
+      `N points`             = length(res$top$members),
+      p_raw                  = res$top$p_cluster,
+      `p_bonferroni (x5)`    = res$p_bonferroni,
+      `Significant (p<0.05)` = res$p_bonferroni < 0.05
+    )
+  }) %>%
+  list_rbind()
+table4_bands
 
-band_panels <- list()
-for (band_name in names(band_results)) {
-  res <- band_results[[band_name]]
-  lo <- res$freq_range[1]; hi <- res$freq_range[2]
+band_panels <- imap(band_results, function(res, band) {
+  in_band <- freqs >= res$freq_range[1] & freqs < res$freq_range[2]
+  t_avg_band <- rowMeans(t_obs_primary[, in_band, drop = FALSE])
 
-  band_mask_full <- freqs >= lo & freqs < hi
-  t_avg_band <- rowMeans(t_obs_primary[, band_mask_full, drop = FALSE])
-
+  significant <- res$p_bonferroni < 0.05
   mask <- rep(FALSE, n_ch)
-  top <- if (length(res$clusters) > 0) res$clusters[[1]] else NULL
-  if (!is.null(top) && res$p_bonferroni < 0.05) {
-    idx <- arrayInd(top$members, .dim = c(length(res$freq_idx), n_ch_roi))
-    ci_band <- unique(idx[, 2])
-    mask[right_idx[ci_band]] <- TRUE
+  if (significant) {
+    idx <- arrayInd(res$top$members, .dim = c(length(res$freq_idx), n_ch_roi))
+    mask[right_idx[unique(idx[, 2])]] <- TRUE
   }
 
-  sig_tag <- if (res$p_bonferroni < 0.05) "significant" else "n.s."
-  band_panels[[band_name]] <- topomap_plot(
-    t_avg_band, mask = mask, vlim = c(-3, 3),
-    title = sprintf("%s (%d-%d Hz)\np=%.3f (%s)", band_name, lo, hi, res$p_bonferroni, sig_tag))
-}
+  topomap_plot(
+    t_avg_band, montage, mask = mask, vlim = c(-3, 3),
+    title = str_glue("{band} ({res$freq_range[1]}-{res$freq_range[2]} Hz)\n",
+                     "p={fmt(res$p_bonferroni, 3)} ({if (significant) 'significant' else 'n.s.'})")
+  )
+})
 
 fig_bands <- wrap_plots(band_panels, nrow = 1) +
   plot_layout(guides = "collect") +
   plot_annotation(title = "Exploratory: right-hemisphere cluster test per canonical band\n(marked channels = significant cluster, Bonferroni-corrected across 5 bands)") &
   theme(legend.position = "bottom")
-print(fig_bands)
-
-table4_bands_rows <- list()
-for (band_name in names(band_results)) {
-  res <- band_results[[band_name]]
-  top <- if (length(res$clusters) > 0) res$clusters[[1]] else list(mass = 0, members = integer(0), p_cluster = 1)
-  table4_bands_rows[[band_name]] <- data.frame(
-    Band = band_name, `Freq min (Hz)` = res$freq_range[1], `Freq max (Hz)` = res$freq_range[2],
-    `Cluster mass` = top$mass, `N points` = length(top$members),
-    p_raw = top$p_cluster, `p_bonferroni (x5)` = res$p_bonferroni,
-    `Significant (p<0.05)` = res$p_bonferroni < 0.05, check.names = FALSE)
-}
-table4_bands <- do.call(rbind, table4_bands_rows)
-rownames(table4_bands) <- NULL
-table4_bands
+fig_bands
 
 # > **What do we see in the plots?**
 # >
@@ -750,71 +668,58 @@ table4_bands
 # Same philosophy as Case Study 1: figures as PNG, tables as both CSV and
 # a single Excel workbook.
 
-figures_to_save <- list(
-  "A_grand_average_psd.png" = fig_grandavg,
+figures <- list(
+  "A_grand_average_psd.png"       = fig_grandavg,
   "B_log_power_distributions.png" = fig_dist,
-  "C_uncorrected_tmap.png" = fig_tmap,
-  "D_cluster_topography.png" = fig_topo,
-  "E_psd_by_moca_level.png" = fig_bygroup,
-  "F_band_topographies.png" = fig_bands
+  "C_uncorrected_tmap.png"        = fig_tmap,
+  "D_cluster_topography.png"      = fig_topo,
+  "E_psd_by_moca_level.png"       = fig_bygroup,
+  "F_band_topographies.png"       = fig_bands
 )
-for (filename in names(figures_to_save)) {
+
+iwalk(figures, function(plot, filename) {
   path <- file.path(FIGS, filename)
-  ggsave(path, figures_to_save[[filename]], width = 9, height = 5, dpi = 150, bg = "white")
-  cat(sprintf("Saved: %s\n", path))
-}
+  ggsave(path, plot, width = 9, height = 5, dpi = 150, bg = "white")
+  cli_alert_success("Saved {.file {path}}")
+})
 
-clusters_to_table <- function(clusters, freqs_, w_right_, ch_index_map, label) {
-  rows <- list()
-  for (rank in seq_along(clusters)) {
-    c <- clusters[[rank]]
-    idx <- arrayInd(c$members, .dim = c(length(freqs_), length(ch_index_map)))
-    fi <- idx[, 1]; ci <- idx[, 2]
-    rows[[rank]] <- data.frame(
-      Analysis = label, `Cluster rank` = rank, `Cluster mass` = c$mass,
-      `N points` = length(c$members), `Freq min (Hz)` = min(freqs_[fi]), `Freq max (Hz)` = max(freqs_[fi]),
-      `Mean w_right` = mean(w_right_[ch_index_map[unique(ci)]]), p_cluster = c$p_cluster, check.names = FALSE)
-  }
-  do.call(rbind, rows)
-}
-
-table2_clusters <- rbind(
+table2_clusters <- bind_rows(
   clusters_to_table(primary_clusters, freqs, w_right, seq_len(n_ch), "Primary (whole spectrum)"),
   clusters_to_table(secondary_clusters, freqs[freq_idx], w_right, right_idx, "Secondary (right hemisphere x 1-8 Hz)")
 )
-rownames(table2_clusters) <- NULL
 table2_clusters
 
-table3_baseline <- data.frame(
-  Predictor = names(coef(mod_baseline)),
-  Estimate = unname(coef(mod_baseline)),
-  `Std. Error` = unname(summary(mod_baseline)$coefficients[, "Std. Error"]),
-  `p-value` = unname(summary(mod_baseline)$coefficients[, "Pr(>|t|)"]),
-  check.names = FALSE
-)
-table3_baseline$`Significant (p<0.05)` <- table3_baseline$`p-value` < 0.05
+table3_baseline <- tidy(mod_baseline) %>%
+  transmute(
+    Predictor              = term,
+    Estimate               = estimate,
+    `Std. Error`           = std.error,
+    `p-value`              = p.value,
+    `Significant (p<0.05)` = p.value < 0.05
+  )
 table3_baseline
 
-tables_to_save <- list(
-  "table1_descriptives.csv" = table1,
-  "table2_clusters.csv" = table2_clusters,
+tables <- list(
+  "table1_descriptives.csv"   = table1,
+  "table2_clusters.csv"       = table2_clusters,
   "table3_baseline_model.csv" = table3_baseline,
   "table4_band_breakdown.csv" = table4_bands
 )
-for (filename in names(tables_to_save)) {
-  path <- file.path(RESULTS, filename)
-  write.csv(tables_to_save[[filename]], path, row.names = FALSE)
-  cat(sprintf("Saved: %s\n", path))
-}
 
-wb <- createWorkbook()
-addWorksheet(wb, "Descriptives");    writeData(wb, "Descriptives", table1)
-addWorksheet(wb, "Clusters");        writeData(wb, "Clusters", table2_clusters)
-addWorksheet(wb, "Baseline model");  writeData(wb, "Baseline model", table3_baseline)
-addWorksheet(wb, "Band breakdown");  writeData(wb, "Band breakdown", table4_bands)
+iwalk(tables, function(table, filename) {
+  path <- file.path(RESULTS, filename)
+  write_csv(table, path)
+  cli_alert_success("Saved {.file {path}}")
+})
+
+# The same four tables in one Excel workbook, one sheet each
 xlsx_path <- file.path(RESULTS, "CaseStudy_2_results.xlsx")
-saveWorkbook(wb, xlsx_path, overwrite = TRUE)
-cat(sprintf("Saved: %s\n", xlsx_path))
+openxlsx::write.xlsx(
+  list(Descriptives = table1, Clusters = table2_clusters,
+       `Baseline model` = table3_baseline, `Band breakdown` = table4_bands),
+  xlsx_path, overwrite = TRUE
+)
+cli_alert_success("Saved {.file {xlsx_path}}")
 
 # ---
 # ## 4. Strengths and limitations of this approach (Section 4.2.3)
@@ -844,5 +749,6 @@ cat(sprintf("Saved: %s\n", xlsx_path))
 #
 # ---
 #
-# *Generated for the EEG-NPSY tutorial. All code is self-contained
-# for transparency and reproducibility.*
+# *Generated for the EEG-NPSY tutorial. The analysis uses standard R
+# packages plus a few helper functions in the `R/` folder next to this
+# notebook - all of it open for inspection.*
