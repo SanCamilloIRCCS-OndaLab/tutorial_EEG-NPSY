@@ -23,8 +23,7 @@ and **Matlab**.
 </div>
 
 <div class="onda-credit" markdown>
-![ONDA Lab](assets/onda_logo.png)
-A tutorial by the [**ONDA Lab**](https://sancamilloirccs-ondalab.github.io/), San Camillo IRCCS
+A tutorial by [REDACTED]
 </div>
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -89,7 +88,7 @@ If you use this tutorial in your work, please cite:
 
 ```
 Author (2025). EEG NPSY Tutorial: A multi-language guide to EEG analysis.
-GitHub: https://github.com/SanCamilloIRCCS-OndaLab/tutorial_EEG-NPSY
+GitHub: [REDACTED]
 ```
 
 See the full [citation page](about/citation.md) for details.

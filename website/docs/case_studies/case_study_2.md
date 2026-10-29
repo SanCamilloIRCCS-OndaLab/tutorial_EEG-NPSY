@@ -139,9 +139,8 @@ Exported results, ready to open in Excel or re-use elsewhere:
 - [Baseline model (CSV)](outputs_cs2/results/table3_baseline_model.csv)
 - [Per-band breakdown, exploratory (CSV)](outputs_cs2/results/table4_band_breakdown.csv)
 
-The code and raw data also live in the
-[GitHub repository](https://github.com/SanCamilloIRCCS-OndaLab/tutorial_EEG-NPSY),
-under `python/CaseStudy_2/`, `r/case2/`, and `data/`.
+The code and raw data also live in the [REDACTED] repository, under
+`python/CaseStudy_2/`, `r/case2/`, and `data/`.
 
 ## Strengths and limitations
 

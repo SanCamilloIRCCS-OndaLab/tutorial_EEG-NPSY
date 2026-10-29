@@ -1,18 +1,11 @@
 site_name: EEG NPSY Tutorial
-site_url: https://sancamilloirccs-ondalab.github.io/tutorial_EEG-NPSY/
-site_author: SanCamilloIRCCS-OndaLab
+site_author: "[REDACTED]"
 site_description: >-
   A multi-language tutorial for EEG data analysis — clinical case studies
   linking EEG/ERP features to neuropsychological outcomes, in Python, R,
   and Matlab.
 
-repo_name: SanCamilloIRCCS-OndaLab/tutorial_EEG-NPSY
-repo_url: https://github.com/SanCamilloIRCCS-OndaLab/tutorial_EEG-NPSY
-edit_uri: edit/main/docs/
-
-copyright: >
-  Copyright &copy; 2025 San Camillo IRCCS — part of the
-  <a href="https://sancamilloirccs-ondalab.github.io/">ONDA Lab</a>
+copyright: "Copyright &copy; 2025 [REDACTED]"
 
 theme:
   name: material
@@ -55,11 +48,6 @@ extra_css:
 extra_javascript:
   - javascripts/lang-switch.js
   - javascripts/section-nav.js
-
-extra:
-  social:
-    - icon: fontawesome/brands/github
-      link: https://github.com/SanCamilloIRCCS-OndaLab/tutorial_EEG-NPSY
 
 plugins:
   - search

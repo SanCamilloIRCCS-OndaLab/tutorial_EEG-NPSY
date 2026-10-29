@@ -1,5 +1,4 @@
-/* ONDA Lab brand colors, sampled from the lab logo (files/images/ONDA_logo_v12.png
-   at https://sancamilloirccs-ondalab.github.io/):
+/* [REDACTED] brand colors, sampled from the lab logo:
      navy      #1b4f72  (the "o", "d", "a" letterforms)
      sky blue  #8fc2d7  (the "n" and its echo)
    The accent used for links/hover is a deepened variant of the sky blue —
@@ -315,11 +314,6 @@
   align-items: center;
   gap: 0.75em;
   margin: 1.5em 0;
-}
-
-.onda-credit img {
-  height: 2.2em;
-  width: auto;
 }
 
 /* inline language switcher (docs/javascripts/lang-switch.js) - sits right

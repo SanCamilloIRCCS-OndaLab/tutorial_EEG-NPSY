@@ -6,7 +6,7 @@ hide:
 # Data
 
 Three CSV files, all linked by `subject_id`, all generated together by
-[`data/generate_datasets.ipynb`](https://github.com/SanCamilloIRCCS-OndaLab/tutorial_EEG-NPSY/tree/main/data):
+`data/generate_datasets.ipynb`:
 
 | File | Type | Columns | Used by |
 |---|---|---|---|
